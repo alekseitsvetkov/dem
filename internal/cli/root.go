@@ -32,6 +32,7 @@ func NewRootCommand(out io.Writer, errOut io.Writer) *cobra.Command {
 	root.AddCommand(newVersionCommand(out))
 	root.AddCommand(newEventsCommand(out, errOut, provider.NewEventsProvider()))
 	root.AddCommand(newResultsCommand(out, errOut, provider.NewResultsProvider()))
+	root.AddCommand(newDemoCommand(out, errOut, provider.NewDemoProvider()))
 
 	return root
 }
