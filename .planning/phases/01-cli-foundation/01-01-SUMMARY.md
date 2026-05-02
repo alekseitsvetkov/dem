@@ -94,7 +94,8 @@ None - plan executed exactly as written.
 
 ## Issues Encountered
 
-- `go`, `gofmt`, and `go test` are unavailable in the current execution environment. File/content acceptance checks passed, but Go build/test verification must be run once Go is installed.
+- Initial execution environment lacked `go`, `gofmt`, and `go test`, so runtime verification was deferred.
+- User later ran `go run ./cmd/dem version`, `go run ./cmd/dem --help`, `go run ./cmd/dem does-not-exist`, and `go test ./...` successfully in their terminal.
 
 ## User Setup Required
 
@@ -103,11 +104,11 @@ None - no external service configuration required.
 ## Next Phase Readiness
 
 - Plan 02 can build on the CLI skeleton to centralize structured errors and add CLI behavior tests.
-- Go tooling remains required for full runtime verification.
+- Runtime verification passed in the user's terminal.
 
-## Self-Check: FAILED
+## Self-Check: PASSED
 
-Implementation files exist and content checks passed, but `go test ./...` and `go run ./cmd/dem version` could not run because `go` is not installed in this environment.
+Implementation files exist, content checks passed, and user-provided terminal output confirms `go run ./cmd/dem version` plus `go test ./...` pass.
 
 ---
 *Phase: 01-cli-foundation*

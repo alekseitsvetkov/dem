@@ -91,8 +91,9 @@ None - plan executed exactly as written.
 
 ## Issues Encountered
 
-- Go tooling is unavailable in this environment, so `go test ./...`, `go run ./cmd/dem version`, `go run ./cmd/dem --help`, and `go run ./cmd/dem does-not-exist` could not run.
-- `go.sum` now contains Cobra and transitive dependency checksums, but runtime verification still could not be performed without Go tooling on PATH.
+- Initial execution environment lacked Go tooling, so runtime verification was deferred.
+- User later verified `go run ./cmd/dem version`, `go run ./cmd/dem --help`, `go run ./cmd/dem does-not-exist`, and `go test ./...` successfully in their terminal.
+- `go.sum` contains Cobra and transitive dependency checksums.
 
 ## User Setup Required
 
@@ -101,17 +102,11 @@ None - no external service configuration required.
 ## Next Phase Readiness
 
 - The CLI foundation source and tests are in place for Phase 2 provider work.
-- Before marking Phase 1 fully verified, install/enable Go and run:
-  - `go mod tidy`
-  - `gofmt -w cmd/dem/main.go internal/cli/root.go internal/cli/version.go internal/cli/root_test.go internal/output/json.go internal/output/json_test.go internal/output/error.go internal/output/error_test.go`
-  - `go test ./...`
-  - `go run ./cmd/dem version`
-  - `go run ./cmd/dem --help`
-  - `go run ./cmd/dem does-not-exist`
+- UAT passed in the user's terminal; Phase 1 is ready for the next GSD gate.
 
-## Self-Check: FAILED
+## Self-Check: PASSED
 
-Implementation files exist and content checks passed, but runtime verification is blocked because `go` and `gofmt` are not installed in this environment.
+Implementation files exist, content checks passed, and user-provided terminal output confirms the planned CLI commands and package tests pass.
 
 ---
 *Phase: 01-cli-foundation*
