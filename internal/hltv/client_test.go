@@ -1,0 +1,109 @@
+package hltv
+
+import (
+	"context"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestNewClientDefaults(t *testing.T) {
+	client := NewClient()
+
+	if client.userAgent != DefaultUserAgent {
+		t.Fatalf("userAgent = %q, want %q", client.userAgent, DefaultUserAgent)
+	}
+	if client.httpClient.Timeout != DefaultTimeout {
+		t.Fatalf("timeout = %s, want %s", client.httpClient.Timeout, DefaultTimeout)
+	}
+}
+
+func TestFetchSendsUserAgent(t *testing.T) {
+	var gotUserAgent string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUserAgent = r.Header.Get("User-Agent")
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer server.Close()
+
+	client := NewClient(WithUserAgent("dem/test"))
+	body, err := client.Fetch(context.Background(), server.URL)
+	if err != nil {
+		t.Fatalf("Fetch returned error: %v", err)
+	}
+	if string(body) != "ok" {
+		t.Fatalf("body = %q, want ok", string(body))
+	}
+	if gotUserAgent != "dem/test" {
+		t.Fatalf("User-Agent = %q, want dem/test", gotUserAgent)
+	}
+}
+
+func TestFetchUsesInjectedHTTPClient(t *testing.T) {
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader("from fake transport")),
+			Header:     make(http.Header),
+			Request:    req,
+		}, nil
+	})
+	client := NewClient(WithHTTPClient(&http.Client{Transport: transport}))
+
+	body, err := client.Fetch(context.Background(), "https://example.test/events")
+	if err != nil {
+		t.Fatalf("Fetch returned error: %v", err)
+	}
+	if string(body) != "from fake transport" {
+		t.Fatalf("body = %q, want fake transport body", string(body))
+	}
+}
+
+func TestFetchMapsHTTPStatusError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := NewClient()
+	_, err := client.Fetch(context.Background(), server.URL)
+	if err == nil {
+		t.Fatalf("Fetch returned nil error")
+	}
+
+	var providerErr *ProviderError
+	if !errors.As(err, &providerErr) {
+		t.Fatalf("error = %T, want *ProviderError", err)
+	}
+	if providerErr.Code != ErrorCodeHTTP {
+		t.Fatalf("code = %q, want %q", providerErr.Code, ErrorCodeHTTP)
+	}
+	if providerErr.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", providerErr.StatusCode)
+	}
+}
+
+func TestFetchMapsInvalidURLToNetworkError(t *testing.T) {
+	client := NewClient()
+	_, err := client.Fetch(context.Background(), "\n")
+	if err == nil {
+		t.Fatalf("Fetch returned nil error")
+	}
+
+	var providerErr *ProviderError
+	if !errors.As(err, &providerErr) {
+		t.Fatalf("error = %T, want *ProviderError", err)
+	}
+	if providerErr.Code != ErrorCodeNetwork {
+		t.Fatalf("code = %q, want %q", providerErr.Code, ErrorCodeNetwork)
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
+}
