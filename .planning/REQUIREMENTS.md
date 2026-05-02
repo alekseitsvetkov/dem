@@ -23,13 +23,13 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Events
 
 - [ ] **EVNT-01**: User can list Tier 1 HLTV events as JSON.
-- [ ] **EVNT-02**: Each event includes stable available fields such as event ID, name, date range, location, and source URL.
+- [x] **EVNT-02**: Each event includes stable available fields such as event ID, name, date range, location, and source URL.
 - [ ] **EVNT-03**: User can limit the number of events returned.
 
 ### Results
 
 - [ ] **RSLT-01**: User can list completed HLTV match results as JSON.
-- [ ] **RSLT-02**: Each result includes stable available fields such as match ID, teams, score, event, date, format, and source URL.
+- [x] **RSLT-02**: Each result includes stable available fields such as match ID, teams, score, event, date, format, and source URL.
 - [ ] **RSLT-03**: User can limit the number of results returned.
 
 ### Demo Lookup
@@ -81,10 +81,10 @@ Explicitly excluded. Documented to prevent scope creep.
 | HLTV-02 | Phase 2 | Pending |
 | HLTV-03 | Phase 2 | Pending |
 | EVNT-01 | Phase 3 | Pending |
-| EVNT-02 | Phase 3 | Pending |
+| EVNT-02 | Phase 3 | Completed (Plan 03-01) |
 | EVNT-03 | Phase 3 | Pending |
 | RSLT-01 | Phase 3 | Pending |
-| RSLT-02 | Phase 3 | Pending |
+| RSLT-02 | Phase 3 | Completed (Plan 03-01) |
 | RSLT-03 | Phase 3 | Pending |
 | DEMO-01 | Phase 4 | Pending |
 | DEMO-02 | Phase 4 | Pending |

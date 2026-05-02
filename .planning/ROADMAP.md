@@ -62,7 +62,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Create domain models (Event with Tier, Result, DemoLink), parser errors, fixtures, ParseEvents (with tier extraction), and ParseResults.
+- [x] 03-01: Create domain models (Event with Tier, Result, DemoLink), parser errors, fixtures, ParseEvents (with tier extraction), and ParseResults.
 - [ ] 03-02: Implement EventsProvider with tier filtering/limit, events CLI command with --tier and --limit, and root command wiring.
 - [ ] 03-03: Implement ResultsProvider with limit, results CLI command with --limit, and root command wiring.
 
@@ -90,5 +90,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. CLI Foundation | 2/2 | Ready for transition | - |
 | 2. HLTV Provider Infrastructure | 0/2 | Not started | - |
-| 3. Events and Results Commands | 0/3 | Not started | - |
+| 3. Events and Results Commands | 1/3 | In progress | - |
 | 4. Demo Link Lookup | 0/2 | Not started | - |
