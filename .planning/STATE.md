@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-05-02)
 
 Phase: 1 of 4 (CLI Foundation)
 Plan: 2 of 2 in current phase
-Status: Ready for validation
-Last activity: 2026-05-02 - Phase 1 security review passed
+Status: Ready for transition
+Last activity: 2026-05-02 - Phase 1 validation passed
 
 Progress: [##--------] 22%
 
@@ -54,7 +54,7 @@ None yet.
 
 - HLTV public page markup may change; parser fixture coverage is required.
 - Tier 1 event criteria must be explicit during implementation.
-- Phase 1 UAT and security review passed; validation remains before formal phase completion.
+- Phase 1 UAT, security review, and validation passed; transition remains before formal phase completion.
 
 ## Deferred Items
 
@@ -66,5 +66,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-05-02
-Stopped at: Phase 1 security review passed; validation pending
-Resume file: .planning/phases/01-cli-foundation/01-SECURITY.md
+Stopped at: Phase 1 validation passed; transition pending
+Resume file: .planning/phases/01-cli-foundation/01-VALIDATION.md
