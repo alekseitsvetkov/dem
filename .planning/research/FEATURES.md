@@ -27,9 +27,9 @@
 ## v1 Command Sketch
 
 ```text
-hltv events --tier 1 --limit 50
-hltv results --limit 100
-hltv demo <match-id>
+dem events --tier 1 --limit 50
+dem results --limit 100
+dem demo <match-id>
 ```
 
 ## Output Sketch

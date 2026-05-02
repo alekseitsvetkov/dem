@@ -4,7 +4,7 @@
 
 | Component | Responsibility |
 |-----------|----------------|
-| `cmd/hltv` | Application entry point and root command wiring. |
+| `cmd/dem` | Application entry point and root command wiring. |
 | `internal/cli` | Cobra commands, flag parsing, stdout/stderr handling, exit behavior. |
 | `internal/hltv` | Provider interface and HLTV-specific implementation. |
 | `internal/hltv/parser` | HTML parser functions for events, results, match demo links. |

@@ -54,9 +54,9 @@ Plans:
 **Depends on**: Phase 2
 **Requirements**: [EVNT-01, EVNT-02, EVNT-03, RSLT-01, RSLT-02, RSLT-03]
 **Success Criteria** (what must be TRUE):
-  1. User can run `hltv events --tier 1` and receive a JSON array of Tier 1 events.
+  1. User can run `dem events --tier 1` and receive a JSON array of Tier 1 events.
   2. Event JSON includes available ID, name, date range, location, and source URL fields.
-  3. User can run `hltv results` and receive a JSON array of completed matches.
+  3. User can run `dem results` and receive a JSON array of completed matches.
   4. Result JSON includes available match ID, teams, score, event, date, format, and source URL fields.
   5. List commands support a limit flag that bounds returned records.
 **Plans**: 3 plans
@@ -71,7 +71,7 @@ Plans:
 **Depends on**: Phase 3
 **Requirements**: [DEMO-01, DEMO-02, DEMO-03]
 **Success Criteria** (what must be TRUE):
-  1. User can run `hltv demo <match-id>` and receive JSON containing the match source URL.
+  1. User can run `dem demo <match-id>` and receive JSON containing the match source URL.
   2. When HLTV exposes a demo link, the command returns the direct or canonical demo URL.
   3. When the match has no demo link, the command returns a distinct structured unavailable-demo error.
   4. Invalid match IDs fail before network access with a structured validation error.

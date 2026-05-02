@@ -42,9 +42,9 @@ HLTV appears to expose the needed data through public pages such as results and 
 
 Initial command shape:
 
-- `hltv events` - returns Tier 1 events.
-- `hltv results` - returns completed matches.
-- `hltv demo <match-id>` - returns a demo download link for the given HLTV match ID when available.
+- `dem events` - returns Tier 1 events.
+- `dem results` - returns completed matches.
+- `dem demo <match-id>` - returns a demo download link for the given HLTV match ID when available.
 
 ## Constraints
 

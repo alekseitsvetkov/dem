@@ -34,7 +34,7 @@ Core value: Users can reliably fetch HLTV event, result, and demo-link data as s
 
 Expected package shape:
 
-- `cmd/hltv` for the application entry point.
+- `cmd/dem` for the application entry point.
 - `internal/cli` for commands, flags, and output wiring.
 - `internal/hltv` for provider interfaces and public-page fetching.
 - `internal/hltv/parser` for HTML parsing.
