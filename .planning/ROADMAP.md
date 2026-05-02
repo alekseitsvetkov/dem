@@ -62,9 +62,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Define event/result domain models and JSON schemas.
-- [ ] 03-02: Implement Tier 1 events parser/provider/command.
-- [ ] 03-03: Implement completed results parser/provider/command.
+- [ ] 03-01: Create domain models (Event with Tier, Result, DemoLink), parser errors, fixtures, ParseEvents (with tier extraction), and ParseResults.
+- [ ] 03-02: Implement EventsProvider with tier filtering/limit, events CLI command with --tier and --limit, and root command wiring.
+- [ ] 03-03: Implement ResultsProvider with limit, results CLI command with --limit, and root command wiring.
 
 ### Phase 4: Demo Link Lookup
 **Goal**: Let users retrieve a demo download link for a specific HLTV match ID.
