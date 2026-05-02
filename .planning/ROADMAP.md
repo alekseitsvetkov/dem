@@ -72,14 +72,14 @@ Plans:
 **Requirements**: [DEMO-01, DEMO-02, DEMO-03]
 **Success Criteria** (what must be TRUE):
   1. User can run `dem demo <match-id>` and receive JSON containing the match source URL.
-  2. When HLTV exposes a demo link, the command returns the direct or canonical demo URL.
-  3. When the match has no demo link, the command returns a distinct structured unavailable-demo error.
-  4. Invalid match IDs fail before network access with a structured validation error.
+  2. When HLTV exposes a demo link, the JSON response includes `demo_url` with the absolute download URL.
+  3. When no demo is available, the response omits `demo_url` (exit code 0); scripts detect availability by checking `data.demo_url` key presence.
+  4. Invalid (non-numeric, zero, negative) match IDs fail before network access with a `validation_error` on stderr and non-zero exit code.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Implement match page fetching/parsing for demo links by match ID.
-- [ ] 04-02: Add demo command validation, JSON output, and unavailable-demo tests.
+- [ ] 04-01: Create ParseDemoLink with live HLTV selectors (`[data-demo-link]` primary, `[data-manuel-download]` fallback), match HTML fixtures, and parser tests.
+- [ ] 04-02: Create DemoProvider with unavailable-data-as-success behavior, demo CLI command with validation and JSON output, and root command wiring.
 
 ## Progress
 

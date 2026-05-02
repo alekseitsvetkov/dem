@@ -14,7 +14,7 @@ Users can reliably fetch HLTV event, result, and demo-link data as stable JSON f
 
 ### Validated
 
-(None yet - ship to validate)
+- [x] HLTV fetching and parsing are isolated behind replaceable internal interfaces. Validated in Phase 2.
 
 ### Active
 
@@ -23,7 +23,6 @@ Users can reliably fetch HLTV event, result, and demo-link data as stable JSON f
 - [ ] User can list Tier 1 HLTV events.
 - [ ] User can list completed match results from HLTV.
 - [ ] User can request a demo download link by HLTV match ID.
-- [ ] HLTV fetching and parsing are isolated behind replaceable internal interfaces.
 - [ ] Network and parsing failures return structured errors and non-zero exit codes.
 
 ### Out of Scope
@@ -62,7 +61,7 @@ Initial command shape:
 | Build in Go | User selected Go; supports strong CLI binaries and maintainable internal packages. | - Pending |
 | JSON-only output | User selected JSON; supports automation and downstream tools. | - Pending |
 | Accept HLTV match ID for demo command | User selected match ID; avoids ambiguous search/disambiguation for v1. | - Pending |
-| Keep HLTV access behind provider/parser interfaces | HLTV markup can change; isolation keeps future fixes scoped. | - Pending |
+| Keep HLTV access behind provider/parser interfaces | HLTV markup can change; isolation keeps future fixes scoped. | Phase 2 implemented `internal/hltv`, `internal/hltv/parser`, and `internal/domain`. |
 
 ## Evolution
 
@@ -82,4 +81,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-02 after initialization*
+*Last updated: 2026-05-02 after Phase 2 execution*

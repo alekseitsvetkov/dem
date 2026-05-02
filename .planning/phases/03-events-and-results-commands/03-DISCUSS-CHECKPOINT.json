@@ -1,0 +1,23 @@
+{
+  "phase": "3",
+  "phase_name": "Events and Results Commands",
+  "timestamp": "2026-05-02T19:44:00Z",
+  "areas_completed": ["Command wiring architecture", "Tier 1 filtering", "Limit flag behavior"],
+  "areas_remaining": ["Error surface mapping"],
+  "decisions": {
+    "Command wiring architecture": [
+      {"question": "How should commands wire the Phase 2 HTTP client and parsers?", "answer": "Provider middleware layer", "options_presented": ["Provider middleware layer (Recommended)", "Direct composition"]},
+      {"question": "Provider design details?", "answer": "best practice", "options_presented": ["(user chose best-practice defaults)"]}
+    ],
+    "Tier 1 filtering": [
+      {"question": "How should --tier 1 filter events?", "answer": "Filter at provider level", "options_presented": ["Filter client-side after parse", "Filter at provider level", "Defer filtering to v2"]},
+      {"question": "What type should the --tier flag be?", "answer": "String flag", "options_presented": ["String flag (Recommended)", "Integer flag", "Enum string"]}
+    ],
+    "Limit flag behavior": [
+      {"question": "Where should --limit flag truncation happen?", "answer": "Client-side truncation", "options_presented": ["Client-side truncation (Recommended)", "Truncate in provider layer"]},
+      {"question": "Does limit belong in provider interface or command handler?", "answer": "Provider handles limit", "options_presented": ["Provider handles limit", "Command handler truncates"]}
+    ]
+  },
+  "deferred_ideas": [],
+  "canonical_refs": [".planning/PROJECT.md", ".planning/REQUIREMENTS.md", ".planning/ROADMAP.md", ".planning/phases/01-cli-foundation/01-CONTEXT.md", ".planning/phases/02-hltv-provider-infrastructure/02-CONTEXT.md"]
+}

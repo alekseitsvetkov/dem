@@ -418,17 +418,13 @@ func (f *fakeDemoProvider) GetDemo(ctx context.Context, matchID int) (domain.Dem
 | A5 | No Phase 1 issues with the existing goquery v1.12.0 / Go 1.25+ requirement for the demo parser (already working in Phase 3 for events/results) | Standard Stack | If Phase 1/2 used a different goquery version, the dependency would need updating |
 | A6 | `DemoURL` field with `omitempty` JSON tag is the correct JSON output contract: empty string omitted from JSON | Architecture Patterns | Scripts checking `data.demo_url` would not find the key at all; they'd need to check key existence, not value |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Is the `.demo-link` CSS selector valid for current live HLTV match pages?**
-   - What we know: The worktree fixture uses `<a href="..." class="demo-link">`. The gigobyte/HLTV Node.js library (issue #620) reported that HLTV moved the demo link to a `data-` attribute after a layout change. However, HLTV may have changed back, or the fixture may reflect the actual current structure.
-   - What's unclear: Whether the live HLTV match page at `https://www.hltv.org/matches/{id}/-` still contains an element matching `a.demo-link` with a valid `href`.
-   - Recommendation: After Phase 4 implementation, run a smoke test against a known match with a demo (e.g., a recent Major final) to validate the selector. If the selector fails, update to the correct CSS selector or data-attribute query.
+   - **RESOLVED:** No. The user provided actual live HLTV match page HTML on 2026-05-02. The live structure uses `[data-demo-link]` attribute (primary) and `[data-manuel-download]` attribute (fallback). The `a.demo-link` CSS class does NOT exist in the current HLTV markup. Plans use `doc.Find("[data-demo-link]")` as primary selector and `doc.Find("[data-manuel-download]")` as fallback. Fixtures updated accordingly.
 
 2. **Should the demo command support `--help` at the subcommand level?**
-   - What we know: `DisableFlagParsing: true` prevents `dem demo --help` from working. Users can use `dem help demo` instead.
-   - What's unclear: Whether this tradeoff is acceptable to the user.
-   - Recommendation: Document the help behavior in the command's `Short` description. If the user objects during discuss-phase, consider switching to `--` separator approach (though it's a worse UX for negative match IDs).
+   - **RESOLVED:** D-07 from CONTEXT.md locks `DisableFlagParsing: true` — the command takes zero flags. Users use `dem help demo` for help. This is the accepted tradeoff.
 
 ## Environment Availability
 
