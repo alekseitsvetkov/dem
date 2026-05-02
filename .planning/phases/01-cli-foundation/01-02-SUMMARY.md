@@ -92,7 +92,7 @@ None - plan executed exactly as written.
 ## Issues Encountered
 
 - Go tooling is unavailable in this environment, so `go test ./...`, `go run ./cmd/dem version`, `go run ./cmd/dem --help`, and `go run ./cmd/dem does-not-exist` could not run.
-- `go.sum` is present but empty because dependency resolution could not be performed without Go tooling.
+- `go.sum` now contains Cobra and transitive dependency checksums, but runtime verification still could not be performed without Go tooling on PATH.
 
 ## User Setup Required
 

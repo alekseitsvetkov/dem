@@ -71,7 +71,7 @@ Each task was committed as part of the phase implementation commit:
 ## Files Created/Modified
 
 - `go.mod` - Go module declaration and Cobra dependency.
-- `go.sum` - Placeholder module checksum file; Go tooling was unavailable locally, so dependency checksums were not generated in this environment.
+- `go.sum` - Module checksum file for Cobra and transitive dependencies.
 - `cmd/dem/main.go` - Process entry point that exits with `cli.Execute()`.
 - `internal/cli/root.go` - Root command factory and command registration.
 - `internal/cli/version.go` - `dem version` command with build metadata fields.
@@ -103,7 +103,7 @@ None - no external service configuration required.
 ## Next Phase Readiness
 
 - Plan 02 can build on the CLI skeleton to centralize structured errors and add CLI behavior tests.
-- Go tooling remains required for full verification and `go.sum` generation.
+- Go tooling remains required for full runtime verification.
 
 ## Self-Check: FAILED
 
