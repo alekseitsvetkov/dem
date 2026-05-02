@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/alekseitsvetkov/dem/internal/output"
+	"github.com/alekseitsvetkov/dem/internal/provider"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +30,8 @@ func NewRootCommand(out io.Writer, errOut io.Writer) *cobra.Command {
 	root.SetOut(out)
 	root.SetErr(errOut)
 	root.AddCommand(newVersionCommand(out))
+	root.AddCommand(newEventsCommand(out, errOut, provider.NewEventsProvider()))
+	root.AddCommand(newResultsCommand(out, errOut, provider.NewResultsProvider()))
 
 	return root
 }
