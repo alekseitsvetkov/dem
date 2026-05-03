@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -23,14 +22,21 @@ func TestNewClientDefaults(t *testing.T) {
 
 func TestFetchSendsUserAgent(t *testing.T) {
 	var gotUserAgent string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		gotUserAgent = r.Header.Get("User-Agent")
-		_, _ = w.Write([]byte("ok"))
-	}))
-	defer server.Close()
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader("ok")),
+			Header:     make(http.Header),
+			Request:    r,
+		}, nil
+	})
 
-	client := NewClient(WithUserAgent("dem/test"))
-	body, err := client.Fetch(context.Background(), server.URL)
+	client := NewClient(
+		WithUserAgent("dem/test"),
+		WithHTTPClient(&http.Client{Transport: transport}),
+	)
+	body, err := client.Fetch(context.Background(), "https://example.test/events")
 	if err != nil {
 		t.Fatalf("Fetch returned error: %v", err)
 	}
@@ -63,13 +69,17 @@ func TestFetchUsesInjectedHTTPClient(t *testing.T) {
 }
 
 func TestFetchMapsHTTPStatusError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "unavailable", http.StatusServiceUnavailable)
-	}))
-	defer server.Close()
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusServiceUnavailable,
+			Body:       io.NopCloser(strings.NewReader("unavailable")),
+			Header:     make(http.Header),
+			Request:    req,
+		}, nil
+	})
 
-	client := NewClient()
-	_, err := client.Fetch(context.Background(), server.URL)
+	client := NewClient(WithHTTPClient(&http.Client{Transport: transport}))
+	_, err := client.Fetch(context.Background(), "https://example.test/results")
 	if err == nil {
 		t.Fatalf("Fetch returned nil error")
 	}

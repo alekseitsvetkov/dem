@@ -18,7 +18,7 @@ type fakeResultsProvider struct {
 	err     error
 }
 
-func (f *fakeResultsProvider) GetResults(ctx context.Context, limit int) ([]domain.Result, error) {
+func (f *fakeResultsProvider) GetResults(ctx context.Context, eventID int, limit int) ([]domain.Result, error) {
 	return f.results, f.err
 }
 

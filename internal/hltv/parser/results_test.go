@@ -33,14 +33,8 @@ func TestParseResults_ParsesFixture(t *testing.T) {
 	if r1.Team2 != "Team Beta" {
 		t.Errorf("expected Team2 'Team Beta', got '%s'", r1.Team2)
 	}
-	if r1.Score != "2-1" {
-		t.Errorf("expected Score '2-1', got '%s'", r1.Score)
-	}
-	if r1.Event != "Test Event 1" {
-		t.Errorf("expected Event 'Test Event 1', got '%s'", r1.Event)
-	}
-	if r1.Date != "2025-01-20" {
-		t.Errorf("expected Date '2025-01-20', got '%s'", r1.Date)
+	if r1.Score != "2 - 1" {
+		t.Errorf("expected Score '2 - 1', got '%s'", r1.Score)
 	}
 	if r1.Format != "bo3" {
 		t.Errorf("expected Format 'bo3', got '%s'", r1.Format)
@@ -60,14 +54,8 @@ func TestParseResults_ParsesFixture(t *testing.T) {
 	if r2.Team2 != "Team Delta" {
 		t.Errorf("expected Team2 'Team Delta', got '%s'", r2.Team2)
 	}
-	if r2.Score != "16-10" {
-		t.Errorf("expected Score '16-10', got '%s'", r2.Score)
-	}
-	if r2.Event != "Another Event" {
-		t.Errorf("expected Event 'Another Event', got '%s'", r2.Event)
-	}
-	if r2.Date != "2025-03-05" {
-		t.Errorf("expected Date '2025-03-05', got '%s'", r2.Date)
+	if r2.Score != "16 - 10" {
+		t.Errorf("expected Score '16 - 10', got '%s'", r2.Score)
 	}
 	if r2.Format != "bo1" {
 		t.Errorf("expected Format 'bo1', got '%s'", r2.Format)
@@ -79,10 +67,14 @@ func TestParseResults_ParsesFixture(t *testing.T) {
 
 func TestParseResults_MissingTeam1(t *testing.T) {
 	input := `<!DOCTYPE html><html><body>
-		<div class="result-con" data-match-id="555">
-			<span class="team2">Team Two</span>
-			<span class="score">1-0</span>
-		</div>
+		<div class="result-con"><a href="/matches/555/team-one-vs-team-two" class="a-reset">
+			<div class="result">
+				<table><tbody><tr>
+					<td class="team-cell"><div class="line-align team2"><div class="team">Team Two</div></div></td>
+					<td class="result-score">1-0</td>
+				</tr></tbody></table>
+			</div>
+		</a></div>
 	</body></html>`
 
 	_, err := ParseResults(strings.NewReader(input), "")
@@ -104,11 +96,15 @@ func TestParseResults_MissingTeam1(t *testing.T) {
 
 func TestParseResults_MissingMatchID(t *testing.T) {
 	input := `<!DOCTYPE html><html><body>
-		<div class="result-con">
-			<span class="team1">Team A</span>
-			<span class="team2">Team B</span>
-			<span class="score">1-0</span>
-		</div>
+		<div class="result-con"><a href="/other/555/page" class="a-reset">
+			<div class="result">
+				<table><tbody><tr>
+					<td class="team-cell"><div class="line-align team1"><div class="team">Team A</div></div></td>
+					<td class="team-cell"><div class="line-align team2"><div class="team">Team B</div></div></td>
+					<td class="result-score">1-0</td>
+				</tr></tbody></table>
+			</div>
+		</a></div>
 	</body></html>`
 
 	_, err := ParseResults(strings.NewReader(input), "")
@@ -127,11 +123,15 @@ func TestParseResults_MissingMatchID(t *testing.T) {
 
 func TestParseResults_MissingOptionalFieldsAreEmpty(t *testing.T) {
 	input := `<!DOCTYPE html><html><body>
-		<div class="result-con" data-match-id="666">
-			<span class="team1">Team X</span>
-			<span class="team2">Team Y</span>
-			<span class="score">0-0</span>
-		</div>
+		<div class="result-con"><a href="/matches/666/team-x-vs-team-y" class="a-reset">
+			<div class="result">
+				<table><tbody><tr>
+					<td class="team-cell"><div class="line-align team1"><div class="team">Team X</div></div></td>
+					<td class="team-cell"><div class="line-align team2"><div class="team">Team Y</div></div></td>
+					<td class="result-score">0-0</td>
+				</tr></tbody></table>
+			</div>
+		</a></div>
 	</body></html>`
 
 	results, err := ParseResults(strings.NewReader(input), "")
@@ -151,9 +151,8 @@ func TestParseResults_MissingOptionalFieldsAreEmpty(t *testing.T) {
 	if r.Format != "" {
 		t.Errorf("expected empty Format, got '%s'", r.Format)
 	}
-	// SourceURL should fall back to the passed-in sourceURL
-	if r.SourceURL != "" {
-		t.Errorf("expected empty SourceURL (since no match link present), got '%s'", r.SourceURL)
+	if !strings.HasPrefix(r.SourceURL, "https://www.hltv.org") {
+		t.Errorf("expected sourceURL to start with 'https://www.hltv.org', got '%s'", r.SourceURL)
 	}
 }
 

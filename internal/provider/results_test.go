@@ -29,7 +29,7 @@ func TestGetResultsSuccess(t *testing.T) {
 	client := hltv.NewClient(hltv.WithHTTPClient(&http.Client{Transport: transport}))
 	p := NewResultsProvider(WithResultsClient(client))
 
-	results, err := p.GetResults(context.Background(), 0)
+	results, err := p.GetResults(context.Background(), 0, 0)
 	if err != nil {
 		t.Fatalf("GetResults returned error: %v", err)
 	}
@@ -42,8 +42,8 @@ func TestGetResultsSuccess(t *testing.T) {
 	if results[0].Team1 != "Team Alpha" {
 		t.Fatalf("results[0].Team1 = %q, want %q", results[0].Team1, "Team Alpha")
 	}
-	if results[0].Score != "2-1" {
-		t.Fatalf("results[0].Score = %q, want %q", results[0].Score, "2-1")
+	if results[0].Score != "2 - 1" {
+		t.Fatalf("results[0].Score = %q, want %q", results[0].Score, "2 - 1")
 	}
 }
 
@@ -64,7 +64,7 @@ func TestGetResultsWithLimit(t *testing.T) {
 	client := hltv.NewClient(hltv.WithHTTPClient(&http.Client{Transport: transport}))
 	p := NewResultsProvider(WithResultsClient(client))
 
-	results, err := p.GetResults(context.Background(), 1)
+	results, err := p.GetResults(context.Background(), 0, 1)
 	if err != nil {
 		t.Fatalf("GetResults returned error: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestGetResultsNetworkError(t *testing.T) {
 	client := hltv.NewClient(hltv.WithHTTPClient(&http.Client{Transport: transport}))
 	p := NewResultsProvider(WithResultsClient(client))
 
-	_, err := p.GetResults(context.Background(), 0)
+	_, err := p.GetResults(context.Background(), 0, 0)
 	if err == nil {
 		t.Fatalf("GetResults returned nil error")
 	}

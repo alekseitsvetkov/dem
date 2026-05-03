@@ -3,18 +3,16 @@ package parser
 import (
 	"io"
 	"net/url"
+	"path"
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alekseitsvetkov/dem/internal/domain"
 )
 
-const hltvBaseURL = "https://www.hltv.org"
-
-// ParseEvents parses an HLTV events page HTML document into typed domain.Event values.
-// Required fields: event ID (data-event-id attribute on .event) and name (text of .event-name link).
-// If either is missing, a *ParseError with ErrorCodeParse is returned.
-// Tier extraction from .event-tier is best-effort: if the element is absent, Tier is empty string.
+// ParseEvents parses an HLTV events page into typed domain.Event values.
+// Matches the live HLTV HTML structure using .a-reset.small-event selectors.
 func ParseEvents(r io.Reader, sourceURL string) ([]domain.Event, error) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
@@ -22,90 +20,94 @@ func ParseEvents(r io.Reader, sourceURL string) ([]domain.Event, error) {
 	}
 
 	var events []domain.Event
-	var parseErr error
 
-	doc.Find(".event").EachWithBreak(func(i int, s *goquery.Selection) bool {
-		id, exists := s.Attr("data-event-id")
-		if !exists || strings.TrimSpace(id) == "" {
-			parseErr = &ParseError{
-				Code:    ErrorCodeParse,
-				Area:    "events",
-				Field:   "id",
-				Message: "missing event ID",
-			}
-			return false
+	doc.Find("a.a-reset.small-event").Each(func(_ int, s *goquery.Selection) {
+		href, hrefExists := s.Attr("href")
+		if !hrefExists || strings.TrimSpace(href) == "" {
+			return // skip entries without href
 		}
 
-		nameEl := s.Find("a.event-name")
-		nameText := strings.TrimSpace(nameEl.Text())
-		if nameText == "" {
-			parseErr = &ParseError{
-				Code:    ErrorCodeParse,
-				Area:    "events",
-				Field:   "name",
-				Message: "missing event name",
-			}
-			return false
+		eventID := extractEventID(href)
+		name := strings.TrimSpace(s.Find(".text-ellipsis").First().Text())
+		if name == "" {
+			return // skip entries without a name
 		}
 
-		tierText := strings.TrimSpace(s.Find(".event-tier").Text())
+		// Tier/type is in the .gtSmartphone-only cell of the first row
+		tier := strings.TrimSpace(s.Find(".gtSmartphone-only").First().Text())
 
-		dateText := strings.TrimSpace(s.Find(".event-date").Text())
-		startDate, endDate := parseDateRange(dateText)
-
-		location := strings.TrimSpace(s.Find(".event-location").Text())
-
-		resolvedURL := sourceURL
-		if href, hrefExists := nameEl.Attr("href"); hrefExists && href != "" {
-			if resolved := resolveURL(href); resolved != "" {
-				resolvedURL = resolved
+		// Prize pool is in the .prizePoolEllipsis cell, text like "$1,000,000"
+		prizePool := 0
+		if prizeText := strings.TrimSpace(s.Find(".prizePoolEllipsis").First().Text()); prizeText != "" {
+			cleaned := strings.NewReplacer("$", "", ",", "").Replace(prizeText)
+			if n, err := strconv.Atoi(cleaned); err == nil {
+				prizePool = n
 			}
+		}
+
+		// Location is in .smallCountry .col-desc (first col-desc in eventDetails)
+		location := ""
+		locSpan := s.Find(".smallCountry .col-desc").First()
+		if locSpan.Length() > 0 {
+			location = strings.TrimSuffix(strings.TrimSpace(locSpan.Text()), "|")
+			location = strings.TrimSpace(location)
+		}
+
+		// Dates from span[data-unix] inside eventDetails row
+		dateSpans := s.Find("span[data-unix]")
+		startDate := ""
+		endDate := ""
+		if dateSpans.Length() >= 1 {
+			startDate = strings.TrimSpace(dateSpans.First().Text())
+		}
+		if dateSpans.Length() >= 2 {
+			endDate = strings.TrimSpace(dateSpans.Eq(1).Text())
+		}
+
+		resolvedURL := "https://www.hltv.org" + href
+		if sourceURL != "" {
+			resolvedURL = sourceURL
 		}
 
 		events = append(events, domain.Event{
-			ID:        id,
-			Name:      nameText,
+			ID:        eventID,
+			Name:      name,
 			StartDate: startDate,
 			EndDate:   endDate,
 			Location:  location,
-			Tier:      tierText,
+			Tier:      tier,
+			PrizePool: prizePool,
 			SourceURL: resolvedURL,
 		})
-		return true
 	})
 
-	if parseErr != nil {
-		return nil, parseErr
-	}
 	if events == nil {
 		events = []domain.Event{}
 	}
 	return events, nil
 }
 
-// parseDateRange splits a date range string like "2025-01-15 to 2025-01-20"
-// into start and end date strings. If no split is possible, the full text
-// is assigned to StartDate and EndDate is empty.
-func parseDateRange(dateText string) (string, string) {
-	if dateText == "" {
-		return "", ""
+// extractEventID extracts the numeric event ID from an HLTV event URL path.
+// Example: "/events/8242/iem-rio-2026" → "8242"
+func extractEventID(href string) string {
+	// href looks like "/events/8242/iem-rio-2026"
+	parts := strings.Split(strings.Trim(href, "/"), "/")
+	if len(parts) >= 2 && parts[0] == "events" {
+		if _, err := strconv.Atoi(parts[1]); err == nil {
+			return parts[1]
+		}
 	}
-	parts := strings.SplitN(dateText, " to ", 2)
-	if len(parts) == 2 {
-		return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
-	}
-	return dateText, ""
+	// Fallback: use last path segment as ID
+	return path.Base(href)
 }
 
 // resolveURL resolves a relative href against the HLTV base URL.
-// If the input is already absolute, it is returned as-is.
-// Returns empty string if parsing fails.
 func resolveURL(href string) string {
 	href = strings.TrimSpace(href)
 	if href == "" {
 		return ""
 	}
-	base, err := url.Parse(hltvBaseURL)
+	base, err := url.Parse("https://www.hltv.org")
 	if err != nil {
 		return ""
 	}

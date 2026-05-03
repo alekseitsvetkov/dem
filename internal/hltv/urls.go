@@ -19,11 +19,15 @@ func NewURLs(baseURL string) URLs {
 }
 
 func (u URLs) EventsURL() string {
-	return u.BaseURL + "/events"
+	return u.BaseURL + "/events/archive"
 }
 
 func (u URLs) ResultsURL() string {
 	return u.BaseURL + "/results"
+}
+
+func (u URLs) ResultsURLForEvent(eventID int) string {
+	return u.BaseURL + "/results?event=" + strconv.Itoa(eventID)
 }
 
 func (u URLs) MatchURL(matchID int) string {

@@ -1,0 +1,12 @@
+=== RUN   TestParseDemoLink_WithDemo
+--- PASS: TestParseDemoLink_WithDemo (0.00s)
+=== RUN   TestParseDemoLink_WithoutDemo
+--- PASS: TestParseDemoLink_WithoutDemo (0.00s)
+=== RUN   TestParseDemoLink_InvalidHTML
+--- PASS: TestParseDemoLink_InvalidHTML (0.00s)
+=== RUN   TestParseDemoLink_EmptyBody
+--- PASS: TestParseDemoLink_EmptyBody (0.00s)
+=== RUN   TestExtractMatchID
+--- PASS: TestExtractMatchID (0.00s)
+PASS
+ok  	github.com/alekseitsvetkov/dem/internal/hltv/parser	0.324s

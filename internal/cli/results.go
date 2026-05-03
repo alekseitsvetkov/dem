@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/alekseitsvetkov/dem/internal/domain"
 	"github.com/alekseitsvetkov/dem/internal/hltv"
@@ -14,10 +15,12 @@ import (
 
 func newResultsCommand(out io.Writer, errOut io.Writer, p provider.ResultsProvider) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "results",
+		Use:   "results [event_id]",
 		Short: "List completed HLTV match results as JSON",
 		Long: "Fetch completed match results from HLTV and return them as a JSON array. " +
+			"Pass an event ID to filter results by event. " +
 			"When --limit is 0 (default), all results from the page are returned.",
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			limit, _ := cmd.Flags().GetInt("limit")
 
@@ -29,7 +32,19 @@ func newResultsCommand(out io.Writer, errOut io.Writer, p provider.ResultsProvid
 				return fmt.Errorf("--limit must be >= 0")
 			}
 
-			results, err := p.GetResults(cmd.Context(), limit)
+			eventID := 0
+			if len(args) > 0 {
+				var err error
+				eventID, err = strconv.Atoi(args[0])
+				if err != nil {
+					_ = output.WriteErrorJSON(errOut, "validation_error",
+						"event ID must be a number",
+						map[string]any{"arg": args[0]})
+					return fmt.Errorf("invalid event ID: %q", args[0])
+				}
+			}
+
+			results, err := p.GetResults(cmd.Context(), eventID, limit)
 			if err != nil {
 				_ = mapResultsError(errOut, err)
 				return err

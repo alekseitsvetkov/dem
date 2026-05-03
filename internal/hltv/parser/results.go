@@ -9,8 +9,7 @@ import (
 )
 
 // ParseResults parses an HLTV results page HTML document into typed domain.Result values.
-// Required fields: match ID (data-match-id attribute on .result-con), team1, team2, score.
-// Event, Date, and Format are optional and may be empty strings.
+// Handles the current HLTV structure where .result-con wraps an <a> with href containing the match URL.
 func ParseResults(r io.Reader, sourceURL string) ([]domain.Result, error) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
@@ -21,8 +20,9 @@ func ParseResults(r io.Reader, sourceURL string) ([]domain.Result, error) {
 	var parseErr error
 
 	doc.Find(".result-con").EachWithBreak(func(i int, s *goquery.Selection) bool {
-		matchID, exists := s.Attr("data-match-id")
-		if !exists || strings.TrimSpace(matchID) == "" {
+		// Extract match ID from the <a href="/matches/{id}/...">
+		matchID := extractMatchIDFromSelection(s)
+		if matchID == "" {
 			parseErr = &ParseError{
 				Code:    ErrorCodeParse,
 				Area:    "results",
@@ -32,7 +32,7 @@ func ParseResults(r io.Reader, sourceURL string) ([]domain.Result, error) {
 			return false
 		}
 
-		team1Text := strings.TrimSpace(s.Find(".team1").Text())
+		team1Text := strings.TrimSpace(s.Find(".team1 .team").First().Text())
 		if team1Text == "" {
 			parseErr = &ParseError{
 				Code:    ErrorCodeParse,
@@ -43,7 +43,7 @@ func ParseResults(r io.Reader, sourceURL string) ([]domain.Result, error) {
 			return false
 		}
 
-		team2Text := strings.TrimSpace(s.Find(".team2").Text())
+		team2Text := strings.TrimSpace(s.Find(".team2 .team").First().Text())
 		if team2Text == "" {
 			parseErr = &ParseError{
 				Code:    ErrorCodeParse,
@@ -54,7 +54,7 @@ func ParseResults(r io.Reader, sourceURL string) ([]domain.Result, error) {
 			return false
 		}
 
-		scoreText := strings.TrimSpace(s.Find(".score").Text())
+		scoreText := strings.TrimSpace(s.Find(".result-score").Text())
 		if scoreText == "" {
 			parseErr = &ParseError{
 				Code:    ErrorCodeParse,
@@ -65,9 +65,9 @@ func ParseResults(r io.Reader, sourceURL string) ([]domain.Result, error) {
 			return false
 		}
 
-		eventName := strings.TrimSpace(s.Find(".event-name").Text())
-		date := strings.TrimSpace(s.Find(".date").Text())
-		format := strings.TrimSpace(s.Find(".format").Text())
+		eventName := strings.TrimSpace(s.Find(".event-name").First().Text())
+		date := strings.TrimSpace(s.Find(".date").First().Text())
+		format := strings.TrimSpace(s.Find(".map-text").First().Text())
 
 		resolvedURL := sourceURL
 		s.Find("a").EachWithBreak(func(j int, a *goquery.Selection) bool {
@@ -82,13 +82,13 @@ func ParseResults(r io.Reader, sourceURL string) ([]domain.Result, error) {
 		})
 
 		results = append(results, domain.Result{
-			MatchID:  matchID,
-			Team1:    team1Text,
-			Team2:    team2Text,
-			Score:    scoreText,
-			Event:    eventName,
-			Date:     date,
-			Format:   format,
+			MatchID:   matchID,
+			Team1:     team1Text,
+			Team2:     team2Text,
+			Score:     scoreText,
+			Event:     eventName,
+			Date:      date,
+			Format:    format,
 			SourceURL: resolvedURL,
 		})
 		return true
@@ -101,4 +101,35 @@ func ParseResults(r io.Reader, sourceURL string) ([]domain.Result, error) {
 		results = []domain.Result{}
 	}
 	return results, nil
+}
+
+// extractMatchIDFromSelection finds the first <a> with a /matches/ URL in the selection
+// and extracts the numeric match ID from the path.
+func extractMatchIDFromSelection(s *goquery.Selection) string {
+	var matchID string
+	s.Find("a").EachWithBreak(func(_ int, a *goquery.Selection) bool {
+		href, exists := a.Attr("href")
+		if !exists {
+			return true
+		}
+		if id := extractMatchIDFromURL(href); id != "" {
+			matchID = id
+			return false
+		}
+		return true
+	})
+	return matchID
+}
+
+// extractMatchIDFromURL extracts the numeric match ID from an HLTV match URL path.
+// Example: "/matches/2393245/spirit-vs-vitality" → "2393245"
+func extractMatchIDFromURL(href string) string {
+	href = strings.TrimSpace(href)
+	parts := strings.Split(strings.Trim(href, "/"), "/")
+	if len(parts) >= 2 && parts[0] == "matches" {
+		if parts[1] != "" {
+			return parts[1]
+		}
+	}
+	return ""
 }

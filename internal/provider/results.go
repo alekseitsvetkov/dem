@@ -10,8 +10,9 @@ import (
 )
 
 // ResultsProvider is the interface for fetching and limiting results.
+// Pass eventID = 0 to fetch from the general results page.
 type ResultsProvider interface {
-	GetResults(ctx context.Context, limit int) ([]domain.Result, error)
+	GetResults(ctx context.Context, eventID int, limit int) ([]domain.Result, error)
 }
 
 type resultsProvider struct {
@@ -44,10 +45,15 @@ func WithResultsURLs(u hltv.URLs) ResultsProviderOption {
 	return func(p *resultsProvider) { p.urls = u }
 }
 
-// GetResults fetches results from HLTV and truncates to the given limit.
+// GetResults fetches results from HLTV, optionally for a specific event.
+// Pass eventID = 0 to fetch from the general results page.
 // A limit of 0 or negative means no truncation (return all).
-func (p *resultsProvider) GetResults(ctx context.Context, limit int) ([]domain.Result, error) {
-	body, err := p.client.Fetch(ctx, p.urls.ResultsURL())
+func (p *resultsProvider) GetResults(ctx context.Context, eventID int, limit int) ([]domain.Result, error) {
+	url := p.urls.ResultsURL()
+	if eventID > 0 {
+		url = p.urls.ResultsURLForEvent(eventID)
+	}
+	body, err := p.client.Fetch(ctx, url)
 	if err != nil {
 		return nil, err // Pass through ProviderError without remapping (D-03, D-08)
 	}

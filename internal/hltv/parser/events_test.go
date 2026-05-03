@@ -18,128 +18,61 @@ func TestParseEvents_ParsesFixture(t *testing.T) {
 		t.Fatalf("ParseEvents returned error: %v", err)
 	}
 
-	if len(events) != 2 {
-		t.Fatalf("expected 2 events, got %d", len(events))
+	if len(events) != 3 {
+		t.Fatalf("expected 3 events, got %d", len(events))
 	}
 
-	// First event
+	// First event: IEM Rio 2026
 	e1 := events[0]
-	if e1.ID != "111" {
-		t.Errorf("expected event ID '111', got '%s'", e1.ID)
+	if e1.ID != "8242" {
+		t.Errorf("expected event ID '8242', got '%s'", e1.ID)
 	}
-	if e1.Name != "Test Event 1" {
-		t.Errorf("expected name 'Test Event 1', got '%s'", e1.Name)
+	if e1.Name != "IEM Rio 2026" {
+		t.Errorf("expected name 'IEM Rio 2026', got '%s'", e1.Name)
 	}
-	if e1.Tier != "S-Tier" {
-		t.Errorf("expected tier 'S-Tier', got '%s'", e1.Tier)
+	if e1.Tier != "Intl. LAN" {
+		t.Errorf("expected tier 'Intl. LAN', got '%s'", e1.Tier)
 	}
-	if e1.StartDate != "2025-01-15" {
-		t.Errorf("expected start date '2025-01-15', got '%s'", e1.StartDate)
+	if e1.StartDate != "Apr 13th" {
+		t.Errorf("expected start date 'Apr 13th', got '%s'", e1.StartDate)
 	}
-	if e1.EndDate != "2025-01-20" {
-		t.Errorf("expected end date '2025-01-20', got '%s'", e1.EndDate)
+	if e1.EndDate != "Apr 19th" {
+		t.Errorf("expected end date 'Apr 19th', got '%s'", e1.EndDate)
 	}
-	if e1.Location != "Katowice, Poland" {
-		t.Errorf("expected location 'Katowice, Poland', got '%s'", e1.Location)
+	if e1.Location != "Rio de Janeiro, Brazil" {
+		t.Errorf("expected location 'Rio de Janeiro, Brazil', got '%s'", e1.Location)
 	}
-	if !strings.HasPrefix(e1.SourceURL, "https://www.hltv.org") {
-		t.Errorf("expected sourceURL to start with 'https://www.hltv.org', got '%s'", e1.SourceURL)
+	if !strings.HasPrefix(e1.SourceURL, "https://www.hltv.org/events/8242") {
+		t.Errorf("expected sourceURL to start with 'https://www.hltv.org/events/8242', got '%s'", e1.SourceURL)
 	}
 
-	// Second event
+	// Second event: PGL Bucharest 2026
 	e2 := events[1]
-	if e2.ID != "222" {
-		t.Errorf("expected event ID '222', got '%s'", e2.ID)
+	if e2.ID != "8048" {
+		t.Errorf("expected event ID '8048', got '%s'", e2.ID)
 	}
-	if e2.Name != "Another Event" {
-		t.Errorf("expected name 'Another Event', got '%s'", e2.Name)
+	if e2.Name != "PGL Bucharest 2026" {
+		t.Errorf("expected name 'PGL Bucharest 2026', got '%s'", e2.Name)
 	}
-	if e2.Tier != "A-Tier" {
-		t.Errorf("expected tier 'A-Tier', got '%s'", e2.Tier)
-	}
-	if e2.StartDate != "2025-03-01" {
-		t.Errorf("expected start date '2025-03-01', got '%s'", e2.StartDate)
-	}
-	if e2.EndDate != "2025-03-05" {
-		t.Errorf("expected end date '2025-03-05', got '%s'", e2.EndDate)
-	}
-	if e2.Location != "Cologne, Germany" {
-		t.Errorf("expected location 'Cologne, Germany', got '%s'", e2.Location)
-	}
-	if !strings.HasPrefix(e2.SourceURL, "https://www.hltv.org") {
-		t.Errorf("expected sourceURL to start with 'https://www.hltv.org', got '%s'", e2.SourceURL)
-	}
-}
-
-func TestParseEvents_MissingEventID(t *testing.T) {
-	input := `<!DOCTYPE html><html><body>
-		<div class="event">
-			<a href="/events/999/no-id" class="event-name">No ID Event</a>
-		</div>
-	</body></html>`
-
-	_, err := ParseEvents(strings.NewReader(input), "")
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	if e2.Tier != "Intl. LAN" {
+		t.Errorf("expected tier 'Intl. LAN', got '%s'", e2.Tier)
 	}
 
-	pe, ok := err.(*ParseError)
-	if !ok {
-		t.Fatalf("expected *ParseError, got %T", err)
+	// Third event: BLAST.tv Austin Major 2025
+	e3 := events[2]
+	if e3.ID != "7902" {
+		t.Errorf("expected event ID '7902', got '%s'", e3.ID)
 	}
-	if pe.Code != ErrorCodeParse {
-		t.Errorf("expected Code 'parse_error', got '%s'", pe.Code)
+	if e3.Name != "BLAST.tv Austin Major 2025" {
+		t.Errorf("expected name 'BLAST.tv Austin Major 2025', got '%s'", e3.Name)
 	}
-	if pe.Field != "id" {
-		t.Errorf("expected Field 'id', got '%s'", pe.Field)
-	}
-}
-
-func TestParseEvents_MissingEventName(t *testing.T) {
-	input := `<!DOCTYPE html><html><body>
-		<div class="event" data-event-id="999">
-			<a href="/events/999/no-name" class="event-name"></a>
-		</div>
-	</body></html>`
-
-	_, err := ParseEvents(strings.NewReader(input), "")
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-
-	pe, ok := err.(*ParseError)
-	if !ok {
-		t.Fatalf("expected *ParseError, got %T", err)
-	}
-	if pe.Code != ErrorCodeParse {
-		t.Errorf("expected Code 'parse_error', got '%s'", pe.Code)
-	}
-	if pe.Field != "name" {
-		t.Errorf("expected Field 'name', got '%s'", pe.Field)
-	}
-}
-
-func TestParseEvents_MissingTierIsNotError(t *testing.T) {
-	input := `<!DOCTYPE html><html><body>
-		<div class="event" data-event-id="555">
-			<a href="/events/555/no-tier" class="event-name">No Tier Event</a>
-		</div>
-	</body></html>`
-
-	events, err := ParseEvents(strings.NewReader(input), "")
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if len(events) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(events))
-	}
-	if events[0].Tier != "" {
-		t.Errorf("expected empty tier, got '%s'", events[0].Tier)
+	if e3.Tier != "Major" {
+		t.Errorf("expected tier 'Major', got '%s'", e3.Tier)
 	}
 }
 
 func TestParseEvents_ReturnsEmptySliceForNoEvents(t *testing.T) {
-	input := `<!DOCTYPE html><html><body><p>No events here</p></body></html>`
+	input := `<html><body><p>No events here</p></body></html>`
 
 	events, err := ParseEvents(strings.NewReader(input), "")
 	if err != nil {
@@ -150,5 +83,51 @@ func TestParseEvents_ReturnsEmptySliceForNoEvents(t *testing.T) {
 	}
 	if len(events) != 0 {
 		t.Errorf("expected 0 events, got %d", len(events))
+	}
+}
+
+func TestParseEvents_SkipsEntriesWithoutName(t *testing.T) {
+	input := `<a href="/events/999/broken" class="a-reset small-event standard-box">
+		<div class="text-ellipsis"></div>
+	</a>`
+
+	events, err := ParseEvents(strings.NewReader(input), "")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if len(events) != 0 {
+		t.Errorf("expected 0 events, got %d", len(events))
+	}
+}
+
+func TestParseEvents_SkipsEntriesWithoutHref(t *testing.T) {
+	input := `<a class="a-reset small-event standard-box">
+		<div class="text-ellipsis">No Link Event</div>
+	</a>`
+
+	events, err := ParseEvents(strings.NewReader(input), "")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if len(events) != 0 {
+		t.Errorf("expected 0 events, got %d", len(events))
+	}
+}
+
+func TestParseEvents_ExtractsEventIDFromURL(t *testing.T) {
+	tests := []struct {
+		href     string
+		expected string
+	}{
+		{"/events/8242/iem-rio-2026", "8242"},
+		{"/events/123/some-event", "123"},
+		{"/events/5", "5"},
+	}
+
+	for _, tt := range tests {
+		got := extractEventID(tt.href)
+		if got != tt.expected {
+			t.Errorf("extractEventID(%q) = %q, want %q", tt.href, got, tt.expected)
+		}
 	}
 }

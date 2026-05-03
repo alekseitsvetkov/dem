@@ -10,6 +10,18 @@ import (
 	"github.com/alekseitsvetkov/dem/internal/hltv/parser"
 )
 
+// tier1Keywords are event name keywords that identify tier 1 tournaments.
+var tier1Keywords = []string{
+	"IEM",
+	"PGL",
+	"Blast",
+	"StarLadder",
+	"FISSURE",
+	"Esports World Cup",
+	"Major",
+	"BetBoom",
+}
+
 // EventsProvider is the interface for fetching and filtering events.
 type EventsProvider interface {
 	GetEvents(ctx context.Context, tier string, limit int) ([]domain.Event, error)
@@ -71,11 +83,19 @@ func (p *eventsProvider) GetEvents(ctx context.Context, tier string, limit int) 
 }
 
 // filterByTier filters events by tier using case-insensitive comparison.
+// When tier is "1", uses a heuristic: prize pool > $250K or name matches
+// known tier-1 organizer keywords.
 func filterByTier(events []domain.Event, tier string) []domain.Event {
 	tier = strings.TrimSpace(tier)
 	if tier == "" {
 		return events
 	}
+
+	// Special case: --tier 1 uses heuristic instead of exact match
+	if tier == "1" {
+		return filterTier1(events)
+	}
+
 	var filtered []domain.Event
 	for _, e := range events {
 		if strings.EqualFold(strings.TrimSpace(e.Tier), tier) {
@@ -83,4 +103,28 @@ func filterByTier(events []domain.Event, tier string) []domain.Event {
 		}
 	}
 	return filtered
+}
+
+// filterTier1 filters events by the tier-1 heuristic:
+// prize pool > $250,000 or name matches known organizer keywords.
+func filterTier1(events []domain.Event) []domain.Event {
+	var filtered []domain.Event
+	for _, e := range events {
+		if e.PrizePool > 250_000 || matchesKeyword(e.Name) {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
+}
+
+// matchesKeyword checks if the event name contains any known tier-1 keyword
+// (case-insensitive).
+func matchesKeyword(name string) bool {
+	upper := strings.ToUpper(name)
+	for _, kw := range tier1Keywords {
+		if strings.Contains(upper, strings.ToUpper(kw)) {
+			return true
+		}
+	}
+	return false
 }

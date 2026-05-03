@@ -44,7 +44,7 @@ func newEventsCommand(out io.Writer, errOut io.Writer, p provider.EventsProvider
 		},
 	}
 
-	cmd.Flags().String("tier", "", "Filter events by tier (e.g., \"1\", \"S-Tier\")")
+	cmd.Flags().String("tier", "", `Filter events by tier. Use "1" for tier-1 heuristic (prize pool > $250K or known organizer keywords). Also supports exact match like "Intl. LAN", "Online", "Major"`)
 	cmd.Flags().Int("limit", 0, "Maximum number of events to return (0 = no limit)")
 	return cmd
 }

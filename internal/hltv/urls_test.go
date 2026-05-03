@@ -5,7 +5,7 @@ import "testing"
 func TestURLsUseDefaultBaseURL(t *testing.T) {
 	urls := NewURLs("")
 
-	if got := urls.EventsURL(); got != "https://www.hltv.org/events" {
+	if got := urls.EventsURL(); got != "https://www.hltv.org/events/archive" {
 		t.Fatalf("EventsURL() = %q, want default events URL", got)
 	}
 	if got := urls.ResultsURL(); got != "https://www.hltv.org/results" {
@@ -19,7 +19,7 @@ func TestURLsUseDefaultBaseURL(t *testing.T) {
 func TestURLsUseCustomBaseURL(t *testing.T) {
 	urls := NewURLs("http://127.0.0.1:8080")
 
-	if got := urls.EventsURL(); got != "http://127.0.0.1:8080/events" {
+	if got := urls.EventsURL(); got != "http://127.0.0.1:8080/events/archive" {
 		t.Fatalf("EventsURL() = %q, want custom events URL", got)
 	}
 }

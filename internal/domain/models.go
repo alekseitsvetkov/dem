@@ -8,6 +8,7 @@ type Event struct {
 	EndDate   string `json:"end_date,omitempty"`
 	Location  string `json:"location,omitempty"`
 	Tier      string `json:"tier,omitempty"`
+	PrizePool int    `json:"prize_pool,omitempty"`
 	SourceURL string `json:"source_url"`
 }
 

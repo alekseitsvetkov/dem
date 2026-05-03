@@ -1,0 +1,50 @@
+=== RUN   TestDemoCommand_Success
+--- PASS: TestDemoCommand_Success (0.00s)
+=== RUN   TestDemoCommand_Unavailable
+--- PASS: TestDemoCommand_Unavailable (0.00s)
+=== RUN   TestDemoCommand_ValidationError_NonNumeric
+--- PASS: TestDemoCommand_ValidationError_NonNumeric (0.00s)
+=== RUN   TestDemoCommand_ValidationError_Zero
+--- PASS: TestDemoCommand_ValidationError_Zero (0.00s)
+=== RUN   TestDemoCommand_ValidationError_Negative
+--- PASS: TestDemoCommand_ValidationError_Negative (0.00s)
+=== RUN   TestDemoCommand_ProviderError
+--- PASS: TestDemoCommand_ProviderError (0.00s)
+=== RUN   TestDemoCommand_ParseError
+--- PASS: TestDemoCommand_ParseError (0.00s)
+=== RUN   TestEventsCommandSuccess
+--- PASS: TestEventsCommandSuccess (0.00s)
+=== RUN   TestEventsCommandWithTier
+--- PASS: TestEventsCommandWithTier (0.00s)
+=== RUN   TestEventsCommandWithLimit
+--- PASS: TestEventsCommandWithLimit (0.00s)
+=== RUN   TestEventsCommandValidationError
+--- PASS: TestEventsCommandValidationError (0.00s)
+=== RUN   TestEventsCommandProviderError
+--- PASS: TestEventsCommandProviderError (0.00s)
+=== RUN   TestEventsCommandParseError
+--- PASS: TestEventsCommandParseError (0.00s)
+=== RUN   TestEventsCommandNilEvents
+--- PASS: TestEventsCommandNilEvents (0.00s)
+=== RUN   TestResultsCommandSuccess
+--- PASS: TestResultsCommandSuccess (0.00s)
+=== RUN   TestResultsCommandWithLimit
+--- PASS: TestResultsCommandWithLimit (0.00s)
+=== RUN   TestResultsCommandValidationError
+--- PASS: TestResultsCommandValidationError (0.00s)
+=== RUN   TestResultsCommandProviderError
+--- PASS: TestResultsCommandProviderError (0.00s)
+=== RUN   TestResultsCommandParseError
+--- PASS: TestResultsCommandParseError (0.00s)
+=== RUN   TestResultsCommandNilResults
+--- PASS: TestResultsCommandNilResults (0.00s)
+=== RUN   TestVersionWritesJSONEnvelope
+--- PASS: TestVersionWritesJSONEnvelope (0.00s)
+=== RUN   TestHelpDoesNotWriteError
+--- PASS: TestHelpDoesNotWriteError (0.00s)
+=== RUN   TestUnknownCommandReturnsError
+--- PASS: TestUnknownCommandReturnsError (0.00s)
+=== RUN   TestAdditionalCommandCanBeRegistered
+--- PASS: TestAdditionalCommandCanBeRegistered (0.00s)
+PASS
+ok  	github.com/alekseitsvetkov/dem/internal/cli	0.331s

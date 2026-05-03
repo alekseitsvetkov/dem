@@ -2,14 +2,19 @@ package hltv
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
+
+	utls "github.com/refraction-networking/utls"
+	"golang.org/x/net/http2"
 )
 
 const (
-	DefaultUserAgent = "dem/dev"
+	DefaultUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 	DefaultTimeout   = 15 * time.Second
 )
 
@@ -21,9 +26,28 @@ type Client struct {
 type ClientOption func(*Client)
 
 func NewClient(opts ...ClientOption) *Client {
+	transport := &http2.Transport{
+		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+			dialer := &net.Dialer{Timeout: 10 * time.Second}
+			conn, err := dialer.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			serverName, _, _ := net.SplitHostPort(addr)
+			uconn := utls.UClient(conn, &utls.Config{ServerName: serverName}, utls.HelloChrome_131)
+			if err := uconn.HandshakeContext(ctx); err != nil {
+				conn.Close()
+				return nil, err
+			}
+			return uconn, nil
+		},
+	}
 	client := &Client{
-		httpClient: &http.Client{Timeout: DefaultTimeout},
-		userAgent:  DefaultUserAgent,
+		httpClient: &http.Client{
+			Timeout:   DefaultTimeout,
+			Transport: transport,
+		},
+		userAgent: DefaultUserAgent,
 	}
 
 	for _, opt := range opts {
@@ -63,6 +87,16 @@ func (c *Client) Fetch(ctx context.Context, pageURL string) ([]byte, error) {
 		}
 	}
 	req.Header.Set("User-Agent", c.userAgent)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	req.Header.Set("Cache-Control", "max-age=0")
+	req.Header.Set("Sec-Ch-Ua", `"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"`)
+	req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
+	req.Header.Set("Sec-Ch-Ua-Platform", `"macOS"`)
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

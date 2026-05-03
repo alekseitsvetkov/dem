@@ -39,17 +39,17 @@ func TestGetEventsSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetEvents returned error: %v", err)
 	}
-	if len(events) != 2 {
-		t.Fatalf("got %d events, want 2", len(events))
+	if len(events) != 3 {
+		t.Fatalf("got %d events, want 3", len(events))
 	}
-	if events[0].ID != "111" {
-		t.Fatalf("events[0].ID = %q, want %q", events[0].ID, "111")
+	if events[0].ID != "8242" {
+		t.Fatalf("events[0].ID = %q, want %q", events[0].ID, "8242")
 	}
-	if events[0].Name != "Test Event 1" {
-		t.Fatalf("events[0].Name = %q, want %q", events[0].Name, "Test Event 1")
+	if events[0].Name != "IEM Rio 2026" {
+		t.Fatalf("events[0].Name = %q, want %q", events[0].Name, "IEM Rio 2026")
 	}
-	if events[0].Tier != "S-Tier" {
-		t.Fatalf("events[0].Tier = %q, want %q", events[0].Tier, "S-Tier")
+	if events[0].Tier != "Intl. LAN" {
+		t.Fatalf("events[0].Tier = %q, want %q", events[0].Tier, "Intl. LAN")
 	}
 }
 
@@ -70,18 +70,18 @@ func TestGetEventsWithTierFilter(t *testing.T) {
 	client := hltv.NewClient(hltv.WithHTTPClient(&http.Client{Transport: transport}))
 	p := NewEventsProvider(WithEventsClient(client))
 
-	events, err := p.GetEvents(context.Background(), "S-Tier", 0)
+	events, err := p.GetEvents(context.Background(), "Intl. LAN", 0)
 	if err != nil {
 		t.Fatalf("GetEvents returned error: %v", err)
 	}
-	if len(events) != 1 {
-		t.Fatalf("got %d events, want 1", len(events))
+	if len(events) != 2 {
+		t.Fatalf("got %d events, want 2", len(events))
 	}
-	if events[0].ID != "111" {
-		t.Fatalf("events[0].ID = %q, want %q", events[0].ID, "111")
+	if events[0].ID != "8242" {
+		t.Fatalf("events[0].ID = %q, want %q", events[0].ID, "8242")
 	}
-	if events[0].Tier != "S-Tier" {
-		t.Fatalf("events[0].Tier = %q, want %q", events[0].Tier, "S-Tier")
+	if events[0].Tier != "Intl. LAN" {
+		t.Fatalf("events[0].Tier = %q, want %q", events[0].Tier, "Intl. LAN")
 	}
 }
 
@@ -109,8 +109,34 @@ func TestGetEventsWithLimit(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("got %d events, want 1", len(events))
 	}
-	if events[0].ID != "111" {
-		t.Fatalf("events[0].ID = %q, want %q", events[0].ID, "111")
+	if events[0].ID != "8242" {
+		t.Fatalf("events[0].ID = %q, want %q", events[0].ID, "8242")
+	}
+}
+
+func TestGetEventsTier1(t *testing.T) {
+	fixtureData, err := os.ReadFile("../hltv/parser/testdata/events.html")
+	if err != nil {
+		t.Fatalf("failed to read fixture: %v", err)
+	}
+
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(string(fixtureData))),
+			Header:     make(http.Header),
+			Request:    req,
+		}, nil
+	})
+	client := hltv.NewClient(hltv.WithHTTPClient(&http.Client{Transport: transport}))
+	p := NewEventsProvider(WithEventsClient(client))
+
+	events, err := p.GetEvents(context.Background(), "1", 0)
+	if err != nil {
+		t.Fatalf("GetEvents returned error: %v", err)
+	}
+	if len(events) != 3 {
+		t.Fatalf("got %d events, want 3 (all fixtures are tier-1 by heuristic)", len(events))
 	}
 }
 
