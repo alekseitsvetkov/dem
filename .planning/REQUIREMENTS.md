@@ -79,30 +79,30 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFR-01 | TBD | Pending |
-| INFR-02 | TBD | Pending |
-| INFR-03 | TBD | Pending |
-| INFR-04 | TBD | Pending |
-| INFR-05 | TBD | Pending |
-| INFR-06 | TBD | Pending |
-| POLL-01 | TBD | Pending |
-| POLL-02 | TBD | Pending |
-| POLL-03 | TBD | Pending |
-| DWLD-01 | TBD | Pending |
-| DWLD-02 | TBD | Pending |
-| DWLD-03 | TBD | Pending |
-| PARS-01 | TBD | Pending |
-| PARS-02 | TBD | Pending |
-| PARS-03 | TBD | Pending |
-| PARS-04 | TBD | Pending |
-| PARS-05 | TBD | Pending |
-| CROS-01 | TBD | Pending |
-| CROS-02 | TBD | Pending |
-| CROS-03 | TBD | Pending |
+| INFR-01 | Phase 5 | Pending |
+| INFR-02 | Phase 5 | Pending |
+| INFR-03 | Phase 5 | Pending |
+| INFR-04 | Phase 5 | Pending |
+| INFR-05 | Phase 5 | Pending |
+| INFR-06 | Phase 5 | Pending |
+| POLL-01 | Phase 6 | Pending |
+| POLL-02 | Phase 6 | Pending |
+| POLL-03 | Phase 6 | Pending |
+| DWLD-01 | Phase 6 | Pending |
+| DWLD-02 | Phase 6 | Pending |
+| DWLD-03 | Phase 6 | Pending |
+| PARS-01 | Phase 6 | Pending |
+| PARS-02 | Phase 6 | Pending |
+| PARS-03 | Phase 6 | Pending |
+| PARS-04 | Phase 6 | Pending |
+| PARS-05 | Phase 6 | Pending |
+| CROS-01 | Phase 6 | Pending |
+| CROS-02 | Phase 6 | Pending |
+| CROS-03 | Phase 6 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 20 total
-- Mapped to phases: 0 (roadmap creation will map)
+- Mapped to phases: 20 (100% coverage)
 
 ---
 *Requirements defined: 2026-05-03*
