@@ -13,6 +13,7 @@ Users can reliably fetch HLTV event, result, and demo-link data as stable JSON f
 ## Current State
 
 **Shipped:** v1.0 (2026-05-03) — 4 phases, 9 plans, 3,136 LOC Go
+**Current milestone:** v1.1 — Microservice Platform
 **Commands:** `dem events --tier 1`, `dem results --limit N`, `dem demo <match-id>`
 **Tech stack:** Go 1.25+, Cobra v1.10.1, goquery v1.12.0
 **Test coverage:** 14 parser tests, 10 provider tests, 10 CLI tests — all fixture-based, no network dependency
@@ -32,7 +33,11 @@ Users can reliably fetch HLTV event, result, and demo-link data as stable JSON f
 
 ### Active
 
-*No active v1 requirements — milestone complete. Run `/gsd-new-milestone` to define v2 requirements.*
+- [ ] Monorepo with microservices architecture (Go, Docker Compose)
+- [ ] Infrastructure platform: NATS, Minio, Postgres, Redis
+- [ ] Tournament polling service — daily Tier 1 check, publish new match demos to download queue
+- [ ] Demo download service — consume download jobs, fetch .dem files from HLTV, store in Minio
+- [ ] Demo parsing service — consume parse jobs, run demoinfocs-golang, extract game events to Postgres
 
 ### Out of Scope
 
@@ -74,4 +79,4 @@ Shipped v1.0 with 3,136 LOC Go. Architecture: Cobra command tree → Provider in
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-05-03 after v1.0 milestone*
+*Last updated: 2026-05-03 — v1.1 milestone started*
