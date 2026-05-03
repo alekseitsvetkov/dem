@@ -2,7 +2,17 @@ module github.com/alekseitsvetkov/dem
 
 go 1.25.0
 
-require github.com/spf13/cobra v1.10.1
+require (
+	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/golang-migrate/migrate/v4/database/pgx/v5 v5.0.0
+	github.com/jackc/pgx/v5 v5.9.2
+	github.com/markus-wa/demoinfocs-golang/v5 v5.2.0
+	github.com/minio/minio-go/v7 v7.0.99
+	github.com/nats-io/nats.go v1.51.0
+	github.com/redis/go-redis/v9 v9.18.0
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/viper v1.21.0
+)
 
 require (
 	github.com/PuerkitoBio/goquery v1.12.0 // indirect
