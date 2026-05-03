@@ -6,11 +6,11 @@ services:
       - "4222:4222"    # NATS client connections
       - "8222:8222"    # NATS monitoring endpoint
     healthcheck:
-      test: ["CMD-SHELL", "nats server ping --server nats://localhost:4222 || exit 1"]
-      interval: 5s
-      timeout: 3s
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8222/healthz 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
       retries: 5
-      start_period: 5s
+      start_period: 10s
 
   postgres:
     image: postgres:17-alpine
