@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Microservice Platform
 status: planning
-stopped_at: Roadmap created — Phase 5 and 6 defined
-last_updated: "2026-05-03T21:26:00.000Z"
-last_activity: 2026-05-03 — v1.1 roadmap created
+stopped_at: Phase 5 plans created — 3 plans in 2 waves, ready for execute-phase
+last_updated: "2026-05-03T21:45:00.000Z"
+last_activity: 2026-05-03 — Phase 5 planning complete, 3 PLAN.md files created
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 3
   completed_plans: 0
   percent: 0
 ---
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-03)
 ## Current Position
 
 Phase: 5 of 6 (Infrastructure Foundation)
-Plan: 0 of TBD in current phase (roadmap created, plans not yet broken down)
-Status: Ready to plan
-Last activity: 2026-05-03 — v1.1 roadmap created (Phase 5 and Phase 6)
+Plan: 3 plans created, 0 executed
+Status: Plans ready — waiting for execute-phase
+Last activity: 2026-05-03 — Phase 5 plans created (05-01: scaffolding, 05-02: docker+migrations, 05-03: shared pkgs)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -42,7 +42,8 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 5 | 3 | 0/3 | - |
+| 6 | 0 | 0/0 | - |
 
 *Updated after each plan completion*
 
@@ -60,6 +61,17 @@ Progress: [░░░░░░░░░░] 0%
 - Existing v1.0 code (`internal/hltv`, `internal/provider`, `internal/cli`) is read-only library code — never modified.
 - Functional options pattern carried from v1.0 — all external dependencies (NATS, Minio, Postgres, Redis) injectable.
 - Structured logging via `log/slog` (stdlib) — no `{data, meta}` JSON envelopes in service output.
+
+### Phase 5 Decisions (from planning)
+
+- D-01: Standard Go project layout — `cmd/poller/`, `cmd/downloader/`, `cmd/parser/` alongside existing `cmd/dem/`. Shared infra at `pkg/natsutil/`, `pkg/minio/`, `pkg/postgres/`. New domain types in `internal/domain/game_events.go`. Existing `internal/` code is read-only.
+- D-02: Single root `go.mod` — all services and the existing CLI compile from one module. No `go.work`, no `replace` directives.
+- D-03: Migration tool: `golang-migrate/migrate` v4 with pgx driver. UP/DOWN migrations in `sql/migrations/` with numbered prefixes.
+- D-04: Six tables: `matches`, `rounds`, `kill_events`, `damage_events`, `players`, `match_players`. All write paths use `INSERT ... ON CONFLICT DO NOTHING` with deterministic event IDs. Primary keys include `match_id` for partition-ready design.
+- D-05: Separate JetStream streams per queue: `DEM_DOWNLOAD` for `dem.download.jobs`, `DEM_PARSE` for `dem.parse.jobs`. Each with WorkQueue retention, `MaxDeliver: 3`, explicit Ack, and durable pull consumers.
+- D-06: Streams are created programmatically at service startup via `js.AddStream()`. Startup fails fast if a required stream is missing. No manual `nats stream create` commands.
+- D-07: Thin connection/pool helpers with functional options. `pkg/natsutil/` wraps `nats.Connect` + `jetstream.New()`. `pkg/minio/` wraps `minio.New()`. `pkg/postgres/` wraps `pgxpool.New()`. Each returns a concrete client/pool — services import and use the underlying library directly for operations.
+- D-08: Postgres connections use `pgxpool.Pool` (not `pgx.Conn`), created once at startup, with explicit `MaxConns: 10-25`. Pass pool to all handlers.
 
 ### Legacy Decisions (from v1.0)
 
@@ -86,6 +98,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-05-03 21:26
-Stopped at: v1.1 roadmap created — Phase 5 and 6 defined, ready for `/gsd-plan-phase 5`
+Last session: 2026-05-03 21:45
+Stopped at: Phase 5 plans created — 05-01 (scaffolding), 05-02 (docker+migrations), 05-03 (shared pkgs)
 Resume file: None

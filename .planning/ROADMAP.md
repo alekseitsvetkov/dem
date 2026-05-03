@@ -49,7 +49,16 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
   3. Database migrations (`sql/migrations/`) create the full v1.1 schema — `matches`, `rounds`, `kill_events`, `damage_events`, `players`, `match_players` — all with appropriate constraints and indexes.
   4. Shared packages (`pkg/natsutil`, `pkg/minio`, `pkg/postgres`) are importable and provide connection helpers with functional options. Postgres connections use `pgxpool` with explicit `MaxConns` (10-25).
   5. NATS JetStream streams are created programmatically at service startup — publishing to a subject with no backing stream fails fast with a clear error.
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+
+Plans:
+- [ ] 05-01-PLAN.md — Monorepo scaffolding: go.mod, cmd/ entrypoints, Makefile, domain types
+- [ ] 05-02-PLAN.md — Docker Compose infrastructure + database migrations (6 tables, 12 SQL files)
+- [ ] 05-03-PLAN.md — Shared infrastructure packages: pkg/natsutil, pkg/minio, pkg/postgres
+
+Wave structure:
+- Wave 1: Plan 01 (scaffolding) + Plan 02 (Docker/migrations) — parallel, no file overlap
+- Wave 2: Plan 03 (shared packages) — after Plan 01 (depends on go.mod deps)
 
 ### Phase 6: Pipeline Services
 **Goal**: The full data pipeline runs end-to-end — Tier 1 tournament matches are automatically discovered, demo files downloaded to MinIO, game events parsed into Postgres, and the system is idempotent and observable.
@@ -75,5 +84,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. HLTV Provider Infrastructure | v1.0 | 2/2 | Complete | 2026-05-02 |
 | 3. Events and Results Commands | v1.0 | 3/3 | Complete | 2026-05-02 |
 | 4. Demo Link Lookup | v1.0 | 2/2 | Complete | 2026-05-03 |
-| 5. Infrastructure Foundation | v1.1 | 0/0 | Not started | - |
+| 5. Infrastructure Foundation | v1.1 | 0/3 | In planning | - |
 | 6. Pipeline Services | v1.1 | 0/0 | Not started | - |
