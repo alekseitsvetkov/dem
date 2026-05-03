@@ -1,0 +1,68 @@
+services:
+  nats:
+    image: nats:2.12-alpine
+    command: ["-js", "-m", "8222", "--name", "dem-nats"]
+    ports:
+      - "4222:4222"    # NATS client connections
+      - "8222:8222"    # NATS monitoring endpoint
+    healthcheck:
+      test: ["CMD-SHELL", "nats server ping --server nats://localhost:4222 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: dem
+      POSTGRES_PASSWORD: dem
+      POSTGRES_DB: dem
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dem -d dem"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_BROWSER: "on"
+    ports:
+      - "9000:9000"    # S3 API
+      - "9001:9001"    # Console UI
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    command: redis-server --appendonly yes
+
+volumes:
+  pgdata:
+  miniodata:
+  redisdata:
