@@ -1,5 +1,0 @@
-# test log
-open testdata/match-with-demo.html
-open testdata/match-without-demo.html
-open testdata/events.html
-open testdata/results.html

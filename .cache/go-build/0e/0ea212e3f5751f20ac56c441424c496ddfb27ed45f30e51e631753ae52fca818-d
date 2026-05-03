@@ -1,7 +1,0 @@
-./demo.go
-./errors.go
-./events.go
-./results.go
-./demo_test.go
-./events_test.go
-./results_test.go

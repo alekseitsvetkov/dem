@@ -1,8 +1,0 @@
-# test log
-open ../hltv/parser/testdata/match-with-demo.html
-open ../hltv/parser/testdata/match-without-demo.html
-open ../hltv/parser/testdata/events.html
-open ../hltv/parser/testdata/events.html
-open ../hltv/parser/testdata/events.html
-open ../hltv/parser/testdata/results.html
-open ../hltv/parser/testdata/results.html

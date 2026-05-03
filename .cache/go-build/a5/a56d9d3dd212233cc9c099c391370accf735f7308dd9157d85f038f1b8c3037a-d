@@ -1,9 +1,0 @@
-./demo.go
-./events.go
-./results.go
-./root.go
-./version.go
-./demo_test.go
-./events_test.go
-./results_test.go
-./root_test.go
