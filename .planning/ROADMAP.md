@@ -71,7 +71,17 @@ Wave structure:
   4. Running the parser twice on the same demo produces identical data with no duplicate rows — idempotent `ON CONFLICT DO NOTHING` inserts work end-to-end.
   5. Every service emits structured log lines via `log/slog` with `match_id` and `job_id` correlation fields. No service uses the v1.0 CLI `{data, meta}` JSON envelope format.
   6. Existing v1.0 CLI commands (`dem events`, `dem results`, `dem demo`) continue to work without modification — the code path under `internal/hltv`, `internal/provider`, and `internal/cli` is untouched.
-**Plans**: TBD
+**Plans**: 4 plans in 2 waves
+
+Plans:
+- [ ] 06-01-PLAN.md — Shared service infrastructure: `internal/service/` package (Service interface, Runner, graceful shutdown) + `processed_matches` migration
+- [ ] 06-02-PLAN.md — Poller service: cron scheduling, HLTV Tier 1 match discovery via v1.0 parsers, NATS job publishing, Postgres dedup
+- [ ] 06-03-PLAN.md — Downloader service: NATS consumer, streaming download from HLTV CDN to MinIO (zero local disk), retry with exponential backoff, parse job publishing
+- [ ] 06-04-PLAN.md — Parser service: NATS consumer, MinIO streaming to demoinfocs-golang, 12 event handlers, batch insert per round, idempotent writes
+
+Wave structure:
+- Wave 1: Plan 01 (shared infrastructure) — no dependencies
+- Wave 2: Plans 02, 03, 04 (poller, downloader, parser) — parallel, all depend on Plan 01
 
 ## Progress
 
@@ -85,4 +95,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Events and Results Commands | v1.0 | 3/3 | Complete | 2026-05-02 |
 | 4. Demo Link Lookup | v1.0 | 2/2 | Complete | 2026-05-03 |
 | 5. Infrastructure Foundation | v1.1 | 0/3 | In planning | - |
-| 6. Pipeline Services | v1.1 | 0/0 | Not started | - |
+| 6. Pipeline Services | v1.1 | 0/4 | In planning | - |
