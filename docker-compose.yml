@@ -3,8 +3,8 @@ services:
     image: nats:2.12-alpine
     command: ["-js", "-m", "8222", "--name", "dem-nats"]
     ports:
-      - "4222:4222"    # NATS client connections
-      - "8222:8222"    # NATS monitoring endpoint
+      - "4222:4222"
+      - "8222:8222"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O- http://localhost:8222/healthz 2>/dev/null || exit 1"]
       interval: 10s
@@ -37,8 +37,8 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
       MINIO_BROWSER: "on"
     ports:
-      - "9000:9000"    # S3 API
-      - "9001:9001"    # Console UI
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - miniodata:/data
     healthcheck:
@@ -61,6 +61,69 @@ services:
       retries: 5
       start_period: 5s
     command: redis-server --appendonly yes
+
+  migrate:
+    build: .
+    command: sh -c "migrate -database 'postgres://dem:dem@postgres:5432/dem?sslmode=disable' -path /sql/migrations up"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  poller:
+    build: .
+    command: /usr/local/bin/poller
+    environment:
+      DEM_NATS_URL: nats://nats:4222
+      DEM_DATABASE_URL: postgres://dem:dem@postgres:5432/dem?sslmode=disable
+      DEM_POLLER_ONESHOT: "true"
+      DEM_POLLER_MIN_INTERVAL: 0s
+    depends_on:
+      nats:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  downloader:
+    build: .
+    command: /usr/local/bin/downloader
+    network_mode: host
+    environment:
+      DEM_NATS_URL: nats://localhost:4222
+      DEM_MINIO_ENDPOINT: localhost:9000
+      DEM_MINIO_ACCESS_KEY: minioadmin
+      DEM_MINIO_SECRET_KEY: minioadmin
+    depends_on:
+      nats:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  parser:
+    build: .
+    command: /usr/local/bin/parser
+    environment:
+      DEM_NATS_URL: nats://nats:4222
+      DEM_DATABASE_URL: postgres://dem:dem@postgres:5432/dem?sslmode=disable
+      DEM_MINIO_ENDPOINT: minio:9000
+      DEM_MINIO_ACCESS_KEY: minioadmin
+      DEM_MINIO_SECRET_KEY: minioadmin
+    depends_on:
+      nats:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
   pgdata:

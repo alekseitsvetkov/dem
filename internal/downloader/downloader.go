@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"os"
+	"path/filepath"
 	"log/slog"
 	"math/rand"
-	"net/http"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -15,6 +15,7 @@ import (
 
 	minio "github.com/minio/minio-go/v7"
 
+	"github.com/alekseitsvetkov/dem/internal/hltv"
 	dmnio "github.com/alekseitsvetkov/dem/pkg/minio"
 	"github.com/alekseitsvetkov/dem/pkg/natsutil"
 )
@@ -29,29 +30,26 @@ import (
 // transient failures with exponential backoff, and publishes parse jobs
 // to dem.parse.jobs on success.
 //
-// Uses a raw *http.Client (not hltv.Client) because hltv.Client.Fetch
-// reads the full response body into []byte, which is incompatible with
-// streaming to MinIO PutObject via io.Reader.
+// Uses hltv.Client.FetchStream (uTLS + browser headers + HTTP/2) for CDN
+// downloads — avoids the 403 bot-detection from raw *http.Client.
 type DownloaderService struct {
 	cfg        Config
 	logger     *slog.Logger
 	js         jetstream.JetStream
 	minio      *minio.Client
-	httpClient *http.Client
+	hltvClient *hltv.Client
 }
 
 // DownloaderOption is a functional option for configuring a DownloaderService.
 type DownloaderOption func(*DownloaderService)
 
 // NewDownloaderService creates a new DownloaderService with the given config and options.
-// Defaults: logger=slog.Default(), httpClient created with cfg.DownloadTimeout.
+// Defaults: logger=slog.Default(), hltvClient created with default settings.
 func NewDownloaderService(cfg Config, opts ...DownloaderOption) *DownloaderService {
 	ds := &DownloaderService{
-		cfg:    cfg,
-		logger: slog.Default(),
-		httpClient: &http.Client{
-			Timeout: cfg.DownloadTimeout,
-		},
+		cfg:        cfg,
+		logger:     slog.Default(),
+		hltvClient: hltv.NewClient(),
 	}
 	for _, opt := range opts {
 		opt(ds)
@@ -74,10 +72,10 @@ func WithLogger(logger *slog.Logger) DownloaderOption {
 	return func(d *DownloaderService) { d.logger = logger }
 }
 
-// WithHTTPClient injects an HTTP client (primarily for testing).
-// If not set, NewDownloaderService creates one with cfg.DownloadTimeout.
-func WithHTTPClient(client *http.Client) DownloaderOption {
-	return func(d *DownloaderService) { d.httpClient = client }
+// WithHLTVClient injects an HLTV HTTP client (primarily for testing).
+// If not set, NewDownloaderService creates one with uTLS defaults.
+func WithHLTVClient(client *hltv.Client) DownloaderOption {
+	return func(d *DownloaderService) { d.hltvClient = client }
 }
 
 // Run implements service.Service.
@@ -98,7 +96,12 @@ func (d *DownloaderService) Run(ctx context.Context) error {
 	}
 	d.logger.Info("minio bucket ensured", slog.String("bucket", d.cfg.MinioBucket))
 
-	// 2. Create or update the durable pull consumer.
+	// 2. Ensure JetStream streams exist (idempotent — no-op if already created).
+	if err := natsutil.CreateStreams(ctx, d.js); err != nil {
+		return fmt.Errorf("create streams: %w", err)
+	}
+
+	// 3. Create or update the durable pull consumer.
 	cons, err := d.js.CreateOrUpdateConsumer(ctx, natsutil.StreamDownload, jetstream.ConsumerConfig{
 		Durable:       "download-worker",
 		FilterSubject: natsutil.SubjectDownload,
@@ -192,9 +195,12 @@ func (d *DownloaderService) processMessage(ctx context.Context, msg jetstream.Ms
 		slog.String("team2", job.Team2),
 	)
 
+		// Rate-limit R2 CDN: 5s between downloads to avoid 403s.
+		time.Sleep(5 * time.Second)
+
 	// Download with retry (D-03: 3 attempts, 5s/25s/125s backoff with jitter).
 	objectKey := fmt.Sprintf("demos/%s.dem.gz", job.MatchID)
-	if msgErr = d.downloadWithRetry(ctx, job.DemoURL, objectKey, logger); msgErr != nil {
+	if msgErr = d.downloadWithRetry(ctx, job.DemoURL, job.MatchURL, objectKey, logger); msgErr != nil {
 		logger.Error("download failed after retries",
 			slog.String("error", msgErr.Error()),
 		)
@@ -248,7 +254,7 @@ func (d *DownloaderService) processMessage(ctx context.Context, msg jetstream.Ms
 // Per D-03: 3 attempts with backoff 5s -> 25s -> 125s, with +/-20% jitter.
 // Only after all internal retries are exhausted does the error propagate up
 // to processMessage, which triggers NakWithDelay.
-func (d *DownloaderService) downloadWithRetry(ctx context.Context, demoURL, objectKey string, logger *slog.Logger) error {
+func (d *DownloaderService) downloadWithRetry(ctx context.Context, demoURL, matchURL, objectKey string, logger *slog.Logger) error {
 	var lastErr error
 	for attempt := 0; attempt < d.cfg.MaxRetries; attempt++ {
 		if attempt > 0 {
@@ -270,7 +276,7 @@ func (d *DownloaderService) downloadWithRetry(ctx context.Context, demoURL, obje
 			time.Sleep(sleepDuration)
 		}
 
-		err := d.streamDownload(ctx, demoURL, objectKey)
+		err := d.streamDownload(ctx, demoURL, matchURL, objectKey)
 		if err == nil {
 			return nil
 		}
@@ -290,37 +296,26 @@ func (d *DownloaderService) downloadWithRetry(ctx context.Context, demoURL, obje
 //
 // Per Pitfall 4 (T-06-08): io.LimitReader caps the response body at MaxBytes
 // (500 MB default) to prevent oversized files from exhausting memory.
-func (d *DownloaderService) streamDownload(ctx context.Context, demoURL, objectKey string) error {
-	downloadCtx, cancel := context.WithTimeout(ctx, d.cfg.DownloadTimeout)
-	defer cancel()
+func (d *DownloaderService) streamDownload(ctx context.Context, demoURL, matchURL, objectKey string) error {
+	// Primary path: Python cloudscraper (proven to solve Cloudflare challenges).
+	// Downloads to temp file, then streams to MinIO.
+	tmpFile := filepath.Join(os.TempDir(), objectKey)
+	defer os.Remove(tmpFile)
 
-	req, err := http.NewRequestWithContext(downloadCtx, http.MethodGet, demoURL, nil)
+	if err := pythonDownload(ctx, demoURL, tmpFile); err != nil {
+		return fmt.Errorf("python download: %w", err)
+	}
+
+	f, err := os.Open(tmpFile)
 	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+		return fmt.Errorf("open temp: %w", err)
 	}
-	req.Header.Set("User-Agent", "DemDownloader/1.0")
+	defer f.Close()
 
-	client := &http.Client{Timeout: d.cfg.DownloadTimeout}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("http get: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("http status %d", resp.StatusCode)
-	}
-
-	// Safety net: limit response body size (Pitfall 4).
-	limitedBody := io.LimitReader(resp.Body, d.cfg.MaxBytes)
-
-	// Per D-04: stream directly from HTTP response body to MinIO.
-	// size=-1 tells MinIO to stream with unknown total size.
-	// PartSize=128 MiB for efficient large-file uploads.
-	_, err = d.minio.PutObject(downloadCtx, d.cfg.MinioBucket, objectKey, limitedBody, -1,
+	_, err = d.minio.PutObject(ctx, d.cfg.MinioBucket, objectKey, f, -1,
 		minio.PutObjectOptions{
 			ContentType: "application/gzip",
-			PartSize:    128 * 1024 * 1024, // 128 MiB parts
+			PartSize:    128 * 1024 * 1024,
 		})
 	if err != nil {
 		return fmt.Errorf("minio put: %w", err)

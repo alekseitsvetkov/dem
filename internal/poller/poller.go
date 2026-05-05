@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -115,10 +116,22 @@ func WithLogger(logger *slog.Logger) PollerOption {
 // Run starts the cron scheduler and blocks until ctx is cancelled.
 // Implements service.Service.
 func (p *PollerService) Run(ctx context.Context) error {
+	// Ensure JetStream streams exist before publishing (idempotent).
+	if err := natsutil.CreateStreams(ctx, p.js); err != nil {
+		return fmt.Errorf("create streams: %w", err)
+	}
+
 	p.logger.Info("poller service starting",
 		slog.String("cron", p.cfg.CronExpression),
 		slog.Duration("min_interval", p.cfg.MinInterval),
+		slog.Bool("oneshot", p.cfg.OneShot),
 	)
+
+	// One-shot mode: run once immediately and return.
+	if p.cfg.OneShot {
+		p.poll(ctx)
+		return nil
+	}
 
 	c := cron.New(cron.WithLocation(time.UTC))
 	_, err := c.AddFunc(p.cfg.CronExpression, func() {
@@ -206,8 +219,8 @@ func (p *PollerService) poll(ctx context.Context) {
 		eventID, err := strconv.Atoi(event.ID)
 		if err != nil {
 			p.logger.Warn("skipping event with non-numeric ID",
-				slog.String("event_id", event.ID),
-				slog.String("event_name", event.Name),
+		slog.String("event_id", event.ID),
+		slog.String("event_name", event.Name),
 			)
 			continue
 		}
@@ -216,9 +229,9 @@ func (p *PollerService) poll(ctx context.Context) {
 		body, err := p.client.Fetch(ctx, resultsURL)
 		if err != nil {
 			p.logger.Warn("failed to fetch results for event",
-				slog.Int("event_id", eventID),
-				slog.String("event_name", event.Name),
-				slog.String("error", err.Error()),
+		slog.Int("event_id", eventID),
+		slog.String("event_name", event.Name),
+		slog.String("error", err.Error()),
 			)
 			continue
 		}
@@ -226,9 +239,9 @@ func (p *PollerService) poll(ctx context.Context) {
 		results, err := parser.ParseResults(bytes.NewReader(body), resultsURL)
 		if err != nil {
 			p.logger.Warn("failed to parse results for event",
-				slog.Int("event_id", eventID),
-				slog.String("event_name", event.Name),
-				slog.String("error", err.Error()),
+		slog.Int("event_id", eventID),
+		slog.String("event_name", event.Name),
+		slog.String("error", err.Error()),
 			)
 			continue
 		}
@@ -243,96 +256,99 @@ func (p *PollerService) poll(ctx context.Context) {
 		for _, result := range results {
 			matchIDInt, err := strconv.ParseInt(result.MatchID, 10, 64)
 			if err != nil {
-				p.logger.Warn("skipping result with non-numeric match ID",
-					slog.String("match_id", result.MatchID),
-					slog.String("event_name", event.Name),
-				)
-				continue
+		p.logger.Warn("skipping result with non-numeric match ID",
+			slog.String("match_id", result.MatchID),
+			slog.String("event_name", event.Name),
+		)
+		continue
 			}
 
 			matchURL := p.urls.MatchURL(int(matchIDInt))
+		// Rate limit: HLTV blocks rapid requests. 2s between match page fetches.
+		time.Sleep(2 * time.Second)
+
 			body, err := p.client.Fetch(ctx, matchURL)
 			if err != nil {
-				p.logger.Warn("failed to fetch match page",
-					slog.Int64("match_id", matchIDInt),
-					slog.String("error", err.Error()),
-				)
-				continue
+		p.logger.Warn("failed to fetch match page",
+			slog.Int64("match_id", matchIDInt),
+			slog.String("error", err.Error()),
+		)
+		continue
 			}
 
 			demoLink, err := parser.ParseDemoLink(bytes.NewReader(body), matchURL)
 			if err != nil {
-				var pe *parser.ParseError
-				if errors.As(err, &pe) && pe.Code == parser.ErrorCodeUnavailableData {
-					// No demo available — expected for many matches, skip silently.
-					continue
-				}
-				p.logger.Warn("failed to parse demo link",
-					slog.Int64("match_id", matchIDInt),
-					slog.String("error", err.Error()),
-				)
-				continue
+		var pe *parser.ParseError
+		if errors.As(err, &pe) && pe.Code == parser.ErrorCodeUnavailableData {
+			// No demo available — expected for many matches, skip silently.
+			continue
+		}
+		p.logger.Warn("failed to parse demo link",
+			slog.Int64("match_id", matchIDInt),
+			slog.String("error", err.Error()),
+		)
+		continue
 			}
 
 			if demoLink.DemoURL == "" {
-				continue
+		continue
 			}
 
 			// Dedup: INSERT INTO processed_matches ON CONFLICT DO NOTHING.
 			// Per D-02: RowsAffected() == 0 means this match was already processed.
 			tag, err := p.pool.Exec(ctx,
-				"INSERT INTO processed_matches (match_id) VALUES ($1) ON CONFLICT DO NOTHING",
-				matchIDInt,
+		"INSERT INTO processed_matches (match_id) VALUES ($1) ON CONFLICT DO NOTHING",
+		matchIDInt,
 			)
 			if err != nil {
-				p.logger.Error("failed to insert processed_matches",
-					slog.Int64("match_id", matchIDInt),
-					slog.String("error", err.Error()),
-				)
-				continue
+		p.logger.Error("failed to insert processed_matches",
+			slog.Int64("match_id", matchIDInt),
+			slog.String("error", err.Error()),
+		)
+		continue
 			}
 			if tag.RowsAffected() == 0 {
-				// Already processed (D-02).
-				continue
+		// Already processed (D-02).
+		continue
 			}
 
 			// Publish download job to NATS dem.download.jobs.
 			payload := DownloadJobPayload{
-				MatchID:      result.MatchID,
-				DemoURL:      demoLink.DemoURL,
-				MatchURL:     demoLink.MatchURL,
-				EventName:    event.Name,
-				Team1:        result.Team1,
-				Team2:        result.Team2,
-				MatchDate:    result.Date,
-				DiscoveredAt: time.Now().UTC().Format(time.RFC3339),
+		MatchID:      result.MatchID,
+		DemoURL:      demoLink.DemoURL,
+		MatchURL:     demoLink.MatchURL,
+		EventName:    event.Name,
+		Team1:        result.Team1,
+		Team2:        result.Team2,
+		MatchDate:    result.Date,
+		DiscoveredAt: time.Now().UTC().Format(time.RFC3339),
 			}
 
 			jsonBytes, err := json.Marshal(payload)
 			if err != nil {
-				p.logger.Error("failed to marshal download job payload",
-					slog.Int64("match_id", matchIDInt),
-					slog.String("error", err.Error()),
-				)
-				continue
+		p.logger.Error("failed to marshal download job payload",
+			slog.Int64("match_id", matchIDInt),
+			slog.String("error", err.Error()),
+		)
+		continue
 			}
 
 			_, err = p.js.PublishMsg(ctx, &nats.Msg{
-				Subject: natsutil.SubjectDownload,
-				Data:    jsonBytes,
+		Subject: natsutil.SubjectDownload,
+		Data:    jsonBytes,
 			})
 			if err != nil {
-				p.logger.Error("failed to publish download job",
-					slog.Int64("match_id", matchIDInt),
-					slog.String("subject", natsutil.SubjectDownload),
-					slog.String("error", err.Error()),
-				)
-				continue
+		p.logger.Error("failed to publish download job",
+			slog.Int64("match_id", matchIDInt),
+			slog.String("subject", natsutil.SubjectDownload),
+			slog.String("error", err.Error()),
+		)
+		continue
 			}
 
 			p.logger.Info("published download job",
-				slog.String("match_id", result.MatchID),
-				slog.String("event", event.Name),
+		slog.String("match_id", result.MatchID),
+		slog.String("event", event.Name),
 			)
 		}
 	}

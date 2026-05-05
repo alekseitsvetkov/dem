@@ -68,7 +68,7 @@ func (w *EventWriter) WriteMatch(ctx context.Context, meta domain.MatchMetadata)
 	w.matchMeta = &meta
 	w.mu.Unlock()
 
-	_, err := w.pool.Exec(ctx, `
+	tag, err := w.pool.Exec(ctx, `
 		INSERT INTO matches (match_id, team1, team2, map_name, tick_rate, duration_secs, parsed_at)
 		VALUES ($1, $2, $3, $4, $5, $6, NOW())
 		ON CONFLICT (match_id) DO UPDATE SET
@@ -79,6 +79,7 @@ func (w *EventWriter) WriteMatch(ctx context.Context, meta domain.MatchMetadata)
 	if err != nil {
 		return fmt.Errorf("write match %s: %w", meta.MatchID, err)
 	}
+	w.logger.Info("match row written", slog.String("match_id", meta.MatchID), slog.Int64("rows_affected", tag.RowsAffected()))
 	return nil
 }
 

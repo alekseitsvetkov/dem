@@ -7,10 +7,12 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"time"
 
 	utls "github.com/refraction-networking/utls"
 	"golang.org/x/net/http2"
+	"golang.org/x/net/publicsuffix"
 )
 
 const (
@@ -26,6 +28,9 @@ type Client struct {
 type ClientOption func(*Client)
 
 func NewClient(opts ...ClientOption) *Client {
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+
+	// http2.Transport with Chrome-uTLS for HLTV main pages (poller).
 	transport := &http2.Transport{
 		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
 			dialer := &net.Dialer{Timeout: 10 * time.Second}
@@ -42,10 +47,12 @@ func NewClient(opts ...ClientOption) *Client {
 			return uconn, nil
 		},
 	}
+
 	client := &Client{
 		httpClient: &http.Client{
 			Timeout:   DefaultTimeout,
 			Transport: transport,
+			Jar:       jar,
 		},
 		userAgent: DefaultUserAgent,
 	}
@@ -55,7 +62,8 @@ func NewClient(opts ...ClientOption) *Client {
 	}
 
 	if client.httpClient == nil {
-		client.httpClient = &http.Client{Timeout: DefaultTimeout}
+		jar2, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+		client.httpClient = &http.Client{Timeout: DefaultTimeout, Jar: jar2}
 	}
 	if client.userAgent == "" {
 		client.userAgent = DefaultUserAgent
@@ -65,29 +73,20 @@ func NewClient(opts ...ClientOption) *Client {
 }
 
 func WithHTTPClient(httpClient *http.Client) ClientOption {
-	return func(client *Client) {
-		client.httpClient = httpClient
-	}
+	return func(client *Client) { client.httpClient = httpClient }
 }
 
 func WithUserAgent(userAgent string) ClientOption {
-	return func(client *Client) {
-		client.userAgent = userAgent
-	}
+	return func(client *Client) { client.userAgent = userAgent }
 }
 
 func (c *Client) Fetch(ctx context.Context, pageURL string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pageURL, nil)
 	if err != nil {
-		return nil, &ProviderError{
-			Code:    ErrorCodeNetwork,
-			Message: "create hltv request",
-			URL:     pageURL,
-			Err:     err,
-		}
+		return nil, &ProviderError{Code: ErrorCodeNetwork, Message: "create request", URL: pageURL, Err: err}
 	}
 	req.Header.Set("User-Agent", c.userAgent)
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+	req.Header.Set("Accept", "text/html,application/xml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	req.Header.Set("Cache-Control", "max-age=0")
 	req.Header.Set("Sec-Ch-Ua", `"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"`)
@@ -100,23 +99,13 @@ func (c *Client) Fetch(ctx context.Context, pageURL string) ([]byte, error) {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, &ProviderError{
-			Code:    ErrorCodeNetwork,
-			Message: "fetch hltv page",
-			URL:     pageURL,
-			Err:     err,
-		}
+		return nil, &ProviderError{Code: ErrorCodeNetwork, Message: "fetch hltv page", URL: pageURL, Err: err}
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, &ProviderError{
-			Code:    ErrorCodeNetwork,
-			Message: "read hltv response",
-			URL:     pageURL,
-			Err:     err,
-		}
+		return nil, &ProviderError{Code: ErrorCodeNetwork, Message: "read hltv response", URL: pageURL, Err: err}
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {

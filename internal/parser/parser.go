@@ -88,6 +88,11 @@ type parseJob struct {
 // processes each with conditional defer covering D-10 (Ack on success,
 // NakWithDelay on failure).
 func (p *ParserService) Run(ctx context.Context) error {
+	// Ensure JetStream streams exist (idempotent — no-op if already created).
+	if err := natsutil.CreateStreams(ctx, p.js); err != nil {
+		return fmt.Errorf("create streams: %w", err)
+	}
+
 	// Create or update the durable pull consumer.
 	// Per D-06: MaxAckPending set from Concurrency config (default 1).
 	cons, err := p.js.CreateOrUpdateConsumer(ctx, natsutil.StreamParse, jetstream.ConsumerConfig{
@@ -180,6 +185,18 @@ func (p *ParserService) processMessage(ctx context.Context, msg jetstream.Msg) {
 
 	writer := NewEventWriter(p.pool, job.MatchID, logger)
 
+		// Ensure the match row exists before any dependent writes.
+		// MatchStart may not fire for CS2 demos; this guarantees FK constraints pass.
+		if err := writer.WriteMatch(ctx, domain.MatchMetadata{
+			MatchID: job.MatchID,
+			Team1:   job.Team1,
+			Team2:   job.Team2,
+		}); err != nil {
+			logger.Error("write match failed", slog.String("error", err.Error()))
+			msgErr = fmt.Errorf("write match: %w", err)
+			return
+		}
+
 	// Per D-08: register 12 event handlers wired to EventWriter.
 	p.registerHandlers(parser, writer, &job, logger)
 
@@ -196,6 +213,11 @@ func (p *ParserService) processMessage(ctx context.Context, msg jetstream.Msg) {
 		msgErr = fmt.Errorf("final flush: %w", err)
 		return
 	}
+
+		// Delete demo from MinIO — re-download if schema expands later.
+		if err := p.minio.RemoveObject(ctx, job.Bucket, job.ObjectKey, minio.RemoveObjectOptions{}); err != nil {
+			logger.Warn("failed to delete demo from minio", slog.String("error", err.Error()))
+		}
 
 	logger.Info("parse complete")
 	// Defer runs: msgErr is nil → msg.Ack()

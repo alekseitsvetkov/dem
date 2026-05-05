@@ -1,118 +1,103 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: executing
-stopped_at: Phase 4, Plan 01 planned
-last_updated: "2026-05-02T18:20:00.000Z"
-last_activity: 2026-05-02 -- Phase 4 plans created
+milestone: v1.1
+milestone_name: Microservice Platform
+status: planning
+stopped_at: Phase 5 plans created — 3 plans in 2 waves, ready for execute-phase
+last_updated: "2026-05-03T21:45:00.000Z"
+last_activity: 2026-05-03 — Phase 5 planning complete, 3 PLAN.md files created
 progress:
-  total_phases: 4
-  completed_phases: 1
-  total_plans: 9
-  completed_plans: 5
-  percent: 55
+  total_phases: 2
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-02)
+See: .planning/PROJECT.md (updated 2026-05-03)
 
-**Core value:** Users can reliably fetch HLTV event, result, and demo-link data as stable JSON from a script-friendly CLI.
-**Current focus:** Phase 4: Demo Link Lookup
+**Core value:** Users can reliably fetch HLTV event, result, and demo-link data as stable JSON from a script-friendly CLI, and automatically acquire and parse CS2 demo files at scale.
+**Current focus:** Phase 5: Infrastructure Foundation
 
 ## Current Position
 
-Phase: 4 of 4 (Demo Link Lookup)
-Plan: 1 of 2 in current phase (04-01-PLAN.md, 04-02-PLAN.md)
-Status: Planning complete — ready for execution
-Last activity: 2026-05-02 -- Phase 4 plans created
+Phase: 5 of 6 (Infrastructure Foundation)
+Plan: 3 plans created, 0 executed
+Status: Plans ready — waiting for execute-phase
+Last activity: 2026-05-03 — Phase 5 plans created (05-01: scaffolding, 05-02: docker+migrations, 05-03: shared pkgs)
 
-Progress: [#######-----] 55%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
-**Velocity:**
+**Velocity (v1.0 baseline):**
+- Total plans completed (v1.0): 9
+- Total execution time (v1.0): ~30 min
 
-- Total plans completed: 5
-- Total plans planned (pending): 2 (Phase 4)
-- Total execution time: 0.2 hours
-
-**By Phase:**
+**By Phase (v1.1):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 03-01 | 1 | 1 | 3min |
-| 03-02 | 1 | 1 | 6min |
-| 03-03 | 1 | 1 | 4min |
-
-**Recent Trend:**
-
-- Last 5 plans: n/a
-- Trend: n/a
+| 5 | 3 | 0/3 | - |
+| 6 | 0 | 0/0 | - |
 
 *Updated after each plan completion*
 
 ## Accumulated Context
 
-### Decisions
+### Key Architectural Decisions (v1.1 Research)
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+- Single `go.mod` monorepo — services added as `cmd/<service>/` entrypoints alongside `cmd/dem/`.
+- NATS JetStream for service decoupling — Pub/Sub with WorkQueue retention, at-least-once delivery, durable pull consumers.
+- `pgxpool` not `pgx.Conn` — pool created once at startup, passed to all handlers, MaxConns 10-25.
+- Streaming everywhere — no `io.ReadAll` on demos (50-200MB). HTTP body -> MinIO -> demoinfocs streamed via `io.Reader`.
+- Idempotent Postgres inserts from day one — `INSERT ... ON CONFLICT DO NOTHING` with deterministic event IDs.
+- `defer msg.Ack()` mandatory in every NATS handler — non-negotiable to prevent infinite redelivery loops.
+- `defer p.Close()` mandatory on every demoinfocs parser — prevents 250MB C-memory leaks per unclosed parser.
+- Existing v1.0 code (`internal/hltv`, `internal/provider`, `internal/cli`) is read-only library code — never modified.
+- Functional options pattern carried from v1.0 — all external dependencies (NATS, Minio, Postgres, Redis) injectable.
+- Structured logging via `log/slog` (stdlib) — no `{data, meta}` JSON envelopes in service output.
 
-- Initialization: Build in Go.
-- Initialization: Emit JSON-only output.
-- Initialization: Demo command accepts HLTV match ID.
-- Phase 3 D-01: Provider middleware layer between commands and infrastructure.
-- Phase 3 D-02: Each provider wraps Client.Fetch + parser into single-call method.
-- Phase 3 D-03: Injectable constructors with option pattern; passthrough typed errors.
-- Phase 3 D-04: Tier filtering at provider level (not command handler).
-- Phase 3 D-05: --tier is a string flag.
-- Phase 3 D-06/D-07: Client-side truncation; provider receives limit, returns bounded data.
-- Phase 3 D-08: Phase 2 error codes map 1:1 to CLI envelope codes.
-- Phase 3 D-09: Validation before any network access.
-- Plan 03-01: Use goquery EachWithBreak for early-exit on required field validation failure.
-- Plan 03-01: ParseError Details() excludes raw HTML content matching ProviderError pattern.
-- Plan 03-01: Missing .event-tier results in empty string Tier (not error).
-- Plan 03-01: Date range split uses " to " separator.
-- Plan 03-01: Source URL resolution uses net/url.ResolveReference against https://www.hltv.org base.
-- Plan 03-02: NewEventsProvider returns the EventsProvider interface (not concrete pointer).
-- Plan 03-02: mapEventsError uses type switch (not common error interface).
-- Plan 03-02: Errors written to stderr via WriteErrorJSON AND returned as non-nil from RunE for exit code propagation.
-- Plan 03-02: --tier is optional (default ""); empty means no filtering at provider level.
-- Plan 03-02: --limit defaults to 0 (no limit); provider truncates only when limit > 0 && limit < len(events).
-- Phase 4 D-01: DemoProvider layer wrapping Client.Fetch + parser.ParseDemoLink.
-- Phase 4 D-02: Functional options constructor (WithDemoClient, WithDemoURLs).
-- Phase 4 D-03: Unavailable data → success with partial DemoLink (DemoURL empty/omitted).
-- Phase 4 D-04: Scripts detect availability by checking data.demo_url key in JSON response.
-- Phase 4 D-05: match-id validated as strictly numeric before any network access.
-- Phase 4 D-06: strconv.Atoi + positive integer check.
-- Phase 4 D-07: dem demo <match-id> — single positional arg, zero flags (DisableFlagParsing: true).
-- Phase 4 CRITICAL: Parser uses [data-demo-link] primary selector and [data-manuel-download] fallback, NOT a.demo-link.
+### Phase 5 Decisions (from planning)
 
-### Pending Todos
+- D-01: Standard Go project layout — `cmd/poller/`, `cmd/downloader/`, `cmd/parser/` alongside existing `cmd/dem/`. Shared infra at `pkg/natsutil/`, `pkg/minio/`, `pkg/postgres/`. New domain types in `internal/domain/game_events.go`. Existing `internal/` code is read-only.
+- D-02: Single root `go.mod` — all services and the existing CLI compile from one module. No `go.work`, no `replace` directives.
+- D-03: Migration tool: `golang-migrate/migrate` v4 with pgx driver. UP/DOWN migrations in `sql/migrations/` with numbered prefixes.
+- D-04: Six tables: `matches`, `rounds`, `kill_events`, `damage_events`, `players`, `match_players`. All write paths use `INSERT ... ON CONFLICT DO NOTHING` with deterministic event IDs. Primary keys include `match_id` for partition-ready design.
+- D-05: Separate JetStream streams per queue: `DEM_DOWNLOAD` for `dem.download.jobs`, `DEM_PARSE` for `dem.parse.jobs`. Each with WorkQueue retention, `MaxDeliver: 3`, explicit Ack, and durable pull consumers.
+- D-06: Streams are created programmatically at service startup via `js.AddStream()`. Startup fails fast if a required stream is missing. No manual `nats stream create` commands.
+- D-07: Thin connection/pool helpers with functional options. `pkg/natsutil/` wraps `nats.Connect` + `jetstream.New()`. `pkg/minio/` wraps `minio.New()`. `pkg/postgres/` wraps `pgxpool.New()`. Each returns a concrete client/pool — services import and use the underlying library directly for operations.
+- D-08: Postgres connections use `pgxpool.Pool` (not `pgx.Conn`), created once at startup, with explicit `MaxConns: 10-25`. Pass pool to all handlers.
 
-None yet.
+### Legacy Decisions (from v1.0)
+
+- Build in Go — selected by user.
+- JSON-only output contract for CLI.
+- HLTV fetching behind provider/parser interfaces — portable to services.
+- `roundTripFunc` fake transports for HTTP tests.
+- Live HLTV selectors validated against actual markup.
 
 ### Blockers/Concerns
 
-- Phase 2 plan 02-02 (domain models, parsers, fixtures) was absorbed into Phase 3 plan 03-01. If 02-02 is executed separately later, it will conflict.
-- HLTV public page markup may change; parser fixture coverage is required.
-- Tier 1 event criteria must be explicit during implementation.
-- The `internal/hltv` tests use `httptest.NewServer` which is blocked by the sandbox. The `go test ./...` command will fail on this pre-existing test.
-- The worktree's `a.demo-link` selector is stale — live HLTV uses `[data-demo-link]` attribute. Phase 4 plans use the correct selector.
+- NATS stream creation order is critical — streams must exist before any publisher starts (silent data loss pitfall).
+- demoinfocs-golang event handler lifecycle needs empirical testing during Phase 6 parser implementation.
+- HLTV CDN download endpoint behavior unknown — needs testing during Downloader implementation.
 
 ## Deferred Items
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| Discovery | Team/date match search | Deferred to v2 | Initialization |
-| Downloads | Download demo files directly | Deferred to v2 | Initialization |
+| Feature | Grenade analytics (clustering, popularity by map/type/team) | Deferred to v2 | v1.1 start |
+| Feature | PostGIS, pgvector, ClickHouse for spatial/vector analytics | Deferred to v2 | v1.1 start |
+| Discovery | Team/date match search (from v1.0) | Still deferred | v1.0 initialization |
+| Downloads | Direct demo file download CLI (from v1.0) | Now in-scope as service | v1.0 initialization |
 
 ## Session Continuity
 
-Last session: 2026-05-02T18:20:00.000Z
-Plans created: Phase 4 Plan 04-01 and 04-02
-Resume file: .planning/phases/04-demo-link-lookup/04-01-PLAN.md
+Last session: 2026-05-03 21:45
+Stopped at: Phase 5 plans created — 05-01 (scaffolding), 05-02 (docker+migrations), 05-03 (shared pkgs)
+Resume file: None

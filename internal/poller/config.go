@@ -27,6 +27,9 @@ type Config struct {
 
 	// LogLevel controls the structured log level (debug, info, warn, error).
 	LogLevel string
+
+	// OneShot runs the poll once immediately and exits instead of starting the cron scheduler.
+	OneShot bool
 }
 
 // LoadConfig reads configuration from environment variables with Viper defaults.
@@ -42,6 +45,7 @@ func LoadConfig() Config {
 	v.SetDefault("database_url", "postgres://dem:dem@localhost:5432/dem?sslmode=disable")
 	v.SetDefault("hltv_base_url", "https://www.hltv.org")
 	v.SetDefault("log_level", "info")
+	v.SetDefault("poller_oneshot", false)
 
 	return Config{
 		CronExpression: v.GetString("poller_cron"),
@@ -50,6 +54,7 @@ func LoadConfig() Config {
 		DatabaseURL:    v.GetString("database_url"),
 		HLTVBaseURL:    v.GetString("hltv_base_url"),
 		LogLevel:       v.GetString("log_level"),
+		OneShot:        v.GetBool("poller_oneshot"),
 	}
 }
 

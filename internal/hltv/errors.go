@@ -17,13 +17,20 @@ func (e *ProviderError) Error() string {
 	if e == nil {
 		return ""
 	}
-	if e.Message != "" {
-		return e.Message
+	msg := e.Message
+	if msg == "" && e.Err != nil {
+		msg = e.Err.Error()
 	}
-	if e.Err != nil {
-		return e.Err.Error()
+	if msg == "" {
+		msg = e.Code
 	}
-	return e.Code
+	if e.Err != nil && e.Err.Error() != msg {
+		msg = msg + ": " + e.Err.Error()
+	}
+	if e.URL != "" {
+		msg = msg + " [" + e.URL + "]"
+	}
+	return msg
 }
 
 func (e *ProviderError) Unwrap() error {
